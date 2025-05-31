@@ -26,7 +26,7 @@ class GameMenu {
                 ${Object.entries(Levels).map(([key, level]) => `
                     <div class="level-card" data-level="${key}">
                         <div class="level-preview">
-                            <canvas width="200" height="150"></canvas>
+                            <canvas width="400" height="300"></canvas>
                         </div>
                         <h3>${level.name}</h3>
                         <span class="difficulty ${level.difficulty.toLowerCase()}">${level.difficulty}</span>
@@ -35,7 +35,7 @@ class GameMenu {
             </div>
         `;
 
-        // Setup level selection
+        // Setup level selection and preview rendering
         const cards = this.levelSelect.querySelectorAll('.level-card');
         cards.forEach(card => {
             const levelKey = card.getAttribute('data-level');
@@ -50,14 +50,59 @@ class GameMenu {
             ctx.fillStyle = '#90EE90';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Draw path
+            // Draw grid for visual reference
+            this.drawPreviewGrid(ctx, canvas.width, canvas.height);
+            
+            // Draw path with thicker lines for preview
+            ctx.save();
+            ctx.lineWidth = 4;
             path.draw(ctx);
+            ctx.restore();
 
             // Add click handler
             card.addEventListener('click', () => {
                 this.selectedLevel = level;
                 this.startGame();
             });
+        });
+
+        // Handle window resize for responsive canvas sizing
+        window.addEventListener('resize', () => {
+            this.updatePreviewCanvasSizes();
+        });
+    }
+
+    drawPreviewGrid(ctx, width, height) {
+        const gridSize = 40;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x < width; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+
+        for (let y = 0; y < height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+    }
+
+    updatePreviewCanvasSizes() {
+        const cards = this.levelSelect.querySelectorAll('.level-card');
+        cards.forEach(card => {
+            const preview = card.querySelector('.level-preview');
+            const canvas = preview.querySelector('canvas');
+            if (canvas) {
+                // Maintain aspect ratio while fitting the preview container
+                const rect = preview.getBoundingClientRect();
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+            }
         });
     }
 
@@ -72,6 +117,11 @@ class GameMenu {
         // Handle side panels
         this.leftPanel.style.display = screenName === 'game' ? 'flex' : 'none';
         this.rightPanel.style.display = screenName === 'game' ? 'flex' : 'none';
+
+        // Update preview sizes when showing level select
+        if (screenName === 'levelSelect') {
+            setTimeout(() => this.updatePreviewCanvasSizes(), 0);
+        }
     }
 
     startGame() {
