@@ -4,16 +4,29 @@ class Game {
         this.ctx = canvas.getContext('2d');
         this.width = canvas.width;
         this.height = canvas.height;
+        this.reset();
+        this.menu = new GameMenu(this);
+    }
+
+    reset() {
         this.money = 200;
         this.lives = 20;
         this.score = 0;
         this.towers = [];
-        this.path = this.createPath();
-        this.waveSystem = new WaveSystem(this.path);
-        this.setupWaveCallbacks();
+        this.path = null;
+        this.waveSystem = null;
         this.lastFrameTime = 0;
-        this.isPaused = false;
+        this.isPaused = true;
+    }
+
+    initializeLevel(level) {
+        this.reset();
+        this.path = level.createPath(this.width, this.height);
+        this.waveSystem = new WaveSystem(this.path, level.waveConfig);
+        this.setupWaveCallbacks();
         this.setupUI();
+        this.isPaused = false;
+        this.start();
     }
 
     setupWaveCallbacks() {
@@ -96,7 +109,7 @@ class Game {
         document.getElementById('money').textContent = this.money;
         document.getElementById('lives').textContent = this.lives;
         document.getElementById('score').textContent = this.score;
-        document.getElementById('wave').textContent = this.waveSystem.currentWave;
+        document.getElementById('wave').textContent = this.waveSystem ? this.waveSystem.currentWave : 0;
 
         // Update tower button states
         const towerButtons = document.querySelectorAll('.tower-button');
@@ -104,6 +117,7 @@ class Game {
             const type = button.getAttribute('data-type');
             const TowerClass = Tower.types[type];
             button.disabled = this.money < TowerClass.cost;
+            button.classList.toggle('selected', Tower.isPlacing && Tower.selectedType === TowerClass);
         });
     }
 
@@ -141,15 +155,19 @@ class Game {
     }
 
     handleClick(x, y) {
-        if (Tower.isPlacing) {
+        if (Tower.isPlacing && Tower.placementTower) {
             if (this.canPlaceTower(x, y)) {
-                const tower = new Tower.selectedType(x, y);
+                const NewTowerType = Tower.selectedType;
+                const tower = new NewTowerType(x, y);
                 this.towers.push(tower);
-                this.money -= Tower.selectedType.cost;
+                this.money -= NewTowerType.cost;
                 this.updateUI();
+                
+                // Reset placement state
+                Tower.isPlacing = false;
+                Tower.placementTower = null;
+                Tower.selectedType = null;
             }
-            Tower.isPlacing = false;
-            Tower.placementTower = null;
         } else {
             // Select existing tower
             Tower.selectedTower = this.towers.find(tower => {
@@ -226,19 +244,11 @@ class Game {
     }
 
     restart() {
-        this.money = 200;
-        this.lives = 20;
-        this.score = 0;
-        this.towers = [];
-        this.waveSystem = new WaveSystem(this.path);
-        this.setupWaveCallbacks();
-        this.isPaused = false;
-        this.updateUI();
-        
         const gameOverScreen = document.getElementById('gameOver');
         if (gameOverScreen) {
             gameOverScreen.style.display = 'none';
         }
+        this.menu.showScreen('levelSelect');
     }
 
     gameLoop(currentTime) {
@@ -272,26 +282,19 @@ class Game {
 
         // Draw tower being placed
         if (Tower.isPlacing && Tower.placementTower) {
-            Tower.placementTower.draw(this.ctx);
-            
-            // Show placement validity
             const rect = this.canvas.getBoundingClientRect();
             const x = Tower.placementTower.x;
             const y = Tower.placementTower.y;
             
-            if (this.canPlaceTower(x, y)) {
-                this.ctx.beginPath();
-                this.ctx.arc(x, y, Tower.placementTower.size, 0, Math.PI * 2);
-                this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
-                this.ctx.lineWidth = 2;
-                this.ctx.stroke();
-            } else {
-                this.ctx.beginPath();
-                this.ctx.arc(x, y, Tower.placementTower.size, 0, Math.PI * 2);
-                this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
-                this.ctx.lineWidth = 2;
-                this.ctx.stroke();
-            }
+            // Draw placement radius
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, Tower.placementTower.range, 0, Math.PI * 2);
+            this.ctx.strokeStyle = this.canPlaceTower(x, y) ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 0, 0, 0.2)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            // Draw tower preview
+            Tower.placementTower.draw(this.ctx, this.canPlaceTower(x, y) ? 0.8 : 0.4);
         }
 
         requestAnimationFrame(this.gameLoop.bind(this));
@@ -352,8 +355,5 @@ window.addEventListener('load', () => {
             const y = e.clientY - rect.top;
             game.handleMove(x, y);
         });
-
-        // Start game
-        game.start();
     }
 }); 
