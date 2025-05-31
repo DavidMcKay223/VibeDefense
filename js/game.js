@@ -4,15 +4,17 @@ class Game {
         this.ctx = canvas.getContext('2d');
         this.width = canvas.width;
         this.height = canvas.height;
-        this.reset();
         this.menu = new GameMenu(this);
         this.shop = new Shop(this);
+        this.achievements = new Achievements(this);
+        this.reset();
         // Make the game instance globally accessible
         window.gameInstance = this;
     }
 
     reset() {
         this.money = 200;
+        // We'll apply veteran bonus after wave system is initialized
         this.lives = 20;
         this.score = 0;
         this.towers = [];
@@ -26,6 +28,20 @@ class Game {
         this.reset();
         this.path = level.createPath(this.width, this.height);
         this.waveSystem = new WaveSystem(this.path, level.waveConfig);
+        
+        // Now that wave system is initialized, set up achievements
+        this.achievements.setupEventListeners();
+        
+        // Apply veteran bonus if unlocked
+        if (this.achievements.rewards.veteranBonus.unlocked) {
+            this.money += 500;
+        }
+        
+        // Apply wave rush reward if unlocked
+        if (this.achievements.rewards.waveRush.unlocked) {
+            this.waveSystem.spawnInterval *= 0.5;
+        }
+        
         this.setupWaveCallbacks();
         this.setupUI();
         this.isPaused = false;
@@ -73,6 +89,17 @@ class Game {
     }
 
     setupUI() {
+        // Ensure game controls container exists
+        let gameControls = document.getElementById('gameControls');
+        if (!gameControls) {
+            gameControls = document.createElement('div');
+            gameControls.id = 'gameControls';
+            const gameContainer = document.getElementById('gameContainer');
+            if (gameContainer) {
+                gameContainer.insertBefore(gameControls, gameContainer.firstChild);
+            }
+        }
+
         // Tower selection buttons
         const towerButtons = document.querySelectorAll('.tower-button');
         towerButtons.forEach(button => {
@@ -106,6 +133,31 @@ class Game {
                 }
             });
         }
+
+        // Add achievements button if it doesn't exist
+        if (!document.getElementById('achievementsButton') && gameControls) {
+            const achievementsButton = document.createElement('button');
+            achievementsButton.id = 'achievementsButton';
+            achievementsButton.className = 'game-button';
+            achievementsButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 8.5L9.75 13.5L14.25 13.5L12 8.5Z"/>
+                    <path d="M12 2L19 6V12C19 15.87 16.37 19.2 12.75 20.25C12.25 20.42 11.75 20.42 11.25 20.25C7.63 19.2 5 15.87 5 12V6L12 2ZM12 4.37L7 7.17V12C7 14.93 8.93 17.42 11.5 18.24C11.67 18.3 11.83 18.3 12 18.24C14.57 17.42 16.5 14.93 16.5 12V7.17L12 4.37Z"/>
+                </svg>
+                Achievements
+            `;
+            achievementsButton.onclick = () => this.achievements.showAchievementsScreen();
+            gameControls.appendChild(achievementsButton);
+        }
+
+        // Show necessary panels
+        const leftPanel = document.getElementById('leftPanel');
+        const rightPanel = document.getElementById('rightPanel');
+        const gameCanvas = document.getElementById('gameCanvas');
+        
+        if (leftPanel) leftPanel.style.display = 'flex';
+        if (rightPanel) rightPanel.style.display = 'flex';
+        if (gameCanvas) gameCanvas.style.display = 'block';
 
         this.updateUI();
     }

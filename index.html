@@ -506,10 +506,61 @@
             opacity: 0.8;
             cursor: not-allowed;
         }
+
+        /* Game Controls */
+        #gameControls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+
+        .game-button {
+            padding: 12px 24px;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-button:hover {
+            background: linear-gradient(to bottom, #3ea8e5, #2980b9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        #achievementsButton {
+            background: linear-gradient(to bottom, #f1c40f, #f39c12);
+        }
+
+        #achievementsButton:hover {
+            background: linear-gradient(to bottom, #f4d03f, #f39c12);
+        }
     </style>
+    <link rel="stylesheet" href="css/achievements.css">
 </head>
 <body>
     <div id="gameContainer">
+        <div id="gameControls"></div>
         <div class="game-content">
             <div id="leftPanel">
                 <div id="towers">
@@ -604,5 +655,6 @@
     <script src="js/levels.js"></script>
     <script src="js/menu.js"></script>
     <script src="js/game.js"></script>
+    <script src="js/achievements.js"></script>
 </body>
 </html> 

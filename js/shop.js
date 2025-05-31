@@ -111,8 +111,8 @@ class Shop {
                     <p class="bonus-text">Level ${item.level}/${item.maxLevel}</p>
                     <p class="bonus-text">${item.bonusPerLevel}</p>
                 </div>
-                <button class="buy-button" data-item="${id}" data-cost="${item.cost}">
-                    Buy (${item.cost} gold)
+                <button class="buy-button" data-item="${id}" data-cost="${this.getItemCost(id)}">
+                    Buy (${this.getItemCost(id)} gold)
                 </button>
             `;
             itemsContainer.appendChild(itemElement);
@@ -155,15 +155,34 @@ class Shop {
         });
     }
 
+    getItemCost(itemId) {
+        const item = this.items[itemId];
+        let cost = item.cost;
+        
+        // Apply power-up master discount if unlocked
+        if (this.game.achievements?.rewards.powerUpMaster.unlocked) {
+            cost = Math.floor(cost * 0.75); // 25% discount
+        }
+        
+        return cost;
+    }
+
     buyItem(itemId) {
         const item = this.items[itemId];
         if (item.level >= item.maxLevel) {
             return;
         }
 
-        if (this.game.money >= item.cost) {
-            this.game.money -= item.cost;
+        const cost = this.getItemCost(itemId);
+        if (this.game.money >= cost) {
+            this.game.money -= cost;
             item.level++;
+            
+            // Track power-up usage for achievements
+            if (this.game.achievements) {
+                this.game.achievements.stats.powerUpsUsed++;
+                this.game.achievements.checkRewards();
+            }
             
             // Apply the upgrade to all existing towers
             this.game.towers.forEach(tower => {
@@ -181,7 +200,10 @@ class Shop {
         const item = this.items[itemId];
         const itemElement = document.querySelector(`[data-item="${itemId}"]`).parentElement;
         const levelText = itemElement.querySelector('.bonus-text');
+        const costText = itemElement.querySelector('.cost-text');
+        
         levelText.textContent = `Level ${item.level}/${item.maxLevel}`;
+        costText.textContent = item.level < item.maxLevel ? `$${this.getItemCost(itemId)}` : 'MAX';
         
         this.updateButtonStates();
     }
