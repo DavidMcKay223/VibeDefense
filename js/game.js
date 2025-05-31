@@ -29,6 +29,8 @@ class Game {
         
         // Create UI
         this.createUI();
+        this.selectedTower = null;
+        this.specialEffects = [];
     }
 
     createUI() {
@@ -53,6 +55,7 @@ class Game {
                     Tower.isPlacing = !Tower.isPlacing;
                     Tower.selectedType = TowerClass;
                     Tower.placementTower = Tower.isPlacing ? new TowerClass(0, 0) : null;
+                    this.selectedTower = null;
                     
                     // Update all buttons
                     buttonContainer.querySelectorAll('button').forEach(btn => {
@@ -67,6 +70,29 @@ class Game {
             button.setAttribute('data-type', name);
             buttonContainer.appendChild(button);
         });
+
+        // Create upgrade button
+        const upgradeButton = document.createElement('button');
+        upgradeButton.textContent = 'Upgrade Tower';
+        upgradeButton.style.padding = '10px';
+        upgradeButton.style.cursor = 'pointer';
+        upgradeButton.style.display = 'none';
+        
+        upgradeButton.addEventListener('click', () => {
+            if (this.selectedTower) {
+                const upgradeCost = this.selectedTower.getUpgradeCost();
+                if (this.money >= upgradeCost) {
+                    if (this.selectedTower.upgrade()) {
+                        this.money -= upgradeCost;
+                        this.updateStats();
+                        this.updateUpgradeButton();
+                    }
+                }
+            }
+        });
+        
+        buttonContainer.appendChild(upgradeButton);
+        this.upgradeButton = upgradeButton;
 
         // Create stats container
         const statsContainer = document.createElement('div');
@@ -134,31 +160,45 @@ class Game {
     }
 
     handleClick(event) {
-        if (!Tower.isPlacing) return;
-        
         const rect = this.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        
-        // Check if the placement is valid (not too close to path)
-        if (!this.path.isPointNearPath(x, y)) {
-            const TowerClass = Tower.selectedType;
-            if (this.money >= TowerClass.cost) {
-                this.towers.push(new TowerClass(x, y));
-                this.money -= TowerClass.cost;
-                this.updateStats();
+
+        if (Tower.isPlacing) {
+            // Place new tower
+            if (!this.path.isPointNearPath(x, y)) {
+                const TowerClass = Tower.selectedType;
+                if (this.money >= TowerClass.cost) {
+                    const tower = new TowerClass(x, y);
+                    this.towers.push(tower);
+                    this.money -= TowerClass.cost;
+                    this.updateStats();
+                }
             }
+            
+            // Reset placement mode
+            Tower.isPlacing = false;
+            Tower.placementTower = null;
+            
+            // Update all buttons
+            document.querySelectorAll('button[data-type]').forEach(button => {
+                const type = button.getAttribute('data-type');
+                button.textContent = `${type} Tower ($${Tower.types[type].cost})`;
+            });
+        } else {
+            // Select tower for upgrade
+            this.selectedTower = null;
+            for (const tower of this.towers) {
+                const dx = tower.x - x;
+                const dy = tower.y - y;
+                if (dx * dx + dy * dy < tower.size * tower.size) {
+                    this.selectedTower = tower;
+                    Tower.selectedTower = tower;
+                    break;
+                }
+            }
+            this.updateUpgradeButton();
         }
-        
-        // Reset placement mode
-        Tower.isPlacing = false;
-        Tower.placementTower = null;
-        
-        // Update all buttons
-        document.querySelectorAll('button[data-type]').forEach(button => {
-            const type = button.getAttribute('data-type');
-            button.textContent = `${type} Tower ($${Tower.types[type].cost})`;
-        });
     }
 
     handleMouseMove(event) {
@@ -199,8 +239,17 @@ class Game {
         this.enemies = this.enemies.filter(enemy => !enemy.isDead);
         this.enemies.forEach(enemy => enemy.update(deltaTime));
 
-        // Update towers
-        this.towers.forEach(tower => tower.update(deltaTime, this.enemies));
+        // Update towers and collect special effects
+        this.towers.forEach(tower => {
+            const effects = tower.update(deltaTime, this.enemies);
+            if (Array.isArray(effects)) {
+                this.specialEffects.push(...effects.filter(effect => effect !== null));
+            }
+        });
+
+        // Update special effects
+        this.specialEffects = this.specialEffects.filter(effect => !effect.isDead);
+        this.specialEffects.forEach(effect => effect.update(deltaTime));
 
         // Update other entities
         this.entities.forEach(entity => {
@@ -224,6 +273,9 @@ class Game {
         // Draw towers
         this.towers.forEach(tower => tower.draw(this.ctx));
 
+        // Draw special effects
+        this.specialEffects.forEach(effect => effect.draw(this.ctx));
+
         // Draw placement tower if in placement mode
         if (Tower.isPlacing && Tower.placementTower) {
             Tower.placementTower.draw(this.ctx);
@@ -235,6 +287,22 @@ class Game {
                 entity.draw(this.ctx);
             }
         });
+    }
+
+    updateUpgradeButton() {
+        if (this.selectedTower) {
+            const upgradeCost = this.selectedTower.getUpgradeCost();
+            this.upgradeButton.style.display = 'block';
+            if (upgradeCost === Infinity) {
+                this.upgradeButton.textContent = 'Max Level';
+                this.upgradeButton.disabled = true;
+            } else {
+                this.upgradeButton.textContent = `Upgrade ($${upgradeCost})`;
+                this.upgradeButton.disabled = this.money < upgradeCost;
+            }
+        } else {
+            this.upgradeButton.style.display = 'none';
+        }
     }
 }
 

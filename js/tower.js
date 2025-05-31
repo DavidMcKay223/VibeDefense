@@ -9,6 +9,26 @@ class BaseTower {
         this.lastShot = 0;
         this.target = null;
         this.projectiles = [];
+        this.level = 1;
+        this.maxLevel = 3;
+        this.shotCount = 0;
+        this.specialShotInterval = 5; // Every 5th shot is special when maxed
+    }
+
+    getUpgradeCost() {
+        return this.level < this.maxLevel ? this.constructor.cost * 0.75 : Infinity;
+    }
+
+    upgrade() {
+        if (this.level < this.maxLevel) {
+            this.level++;
+            // Base stat improvements
+            this.damage *= 1.5;
+            this.range *= 1.2;
+            this.fireRate *= 0.8;
+            return true;
+        }
+        return false;
     }
 
     update(deltaTime, enemies) {
@@ -52,13 +72,22 @@ class BaseTower {
     }
 
     createProjectile() {
+        this.shotCount++;
+        const isSpecialShot = this.level === this.maxLevel && this.shotCount % this.specialShotInterval === 0;
+        
         this.projectiles.push(new Projectile(
             this.x,
             this.y,
             this.target,
             this.damage,
-            this.projectileColor
+            this.projectileColor,
+            isSpecialShot,
+            this.specialAbility.bind(this)
         ));
+    }
+
+    specialAbility(x, y) {
+        // Override in subclasses
     }
 
     draw(ctx) {
@@ -71,10 +100,24 @@ class BaseTower {
             this.size
         );
 
+        // Draw level indicator
+        ctx.fillStyle = '#FFD700';
+        for (let i = 0; i < this.level; i++) {
+            ctx.beginPath();
+            ctx.arc(
+                this.x - this.size / 4 + (i * this.size / 4),
+                this.y + this.size / 2 + 5,
+                3,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+
         // Draw tower symbol
         this.drawSymbol(ctx);
 
-        // Draw range circle (only when selected or placing)
+        // Draw range circle
         if (Tower.isPlacing || this === Tower.selectedTower) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
@@ -89,7 +132,7 @@ class BaseTower {
         // Draw projectiles
         this.projectiles.forEach(proj => proj.draw(ctx));
 
-        // Draw targeting line if we have a target
+        // Draw targeting line
         if (this.target && !this.target.isDead) {
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
@@ -117,8 +160,12 @@ class BasicTower extends BaseTower {
         this.range = 120;
     }
 
+    specialAbility(x, y) {
+        // Create a small explosion
+        return new Explosion(x, y, 30, this.damage * 0.5);
+    }
+
     drawSymbol(ctx) {
-        // Draw a simple dot in the center
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
         ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
@@ -138,8 +185,12 @@ class SniperTower extends BaseTower {
         this.range = 250;
     }
 
+    specialAbility(x, y) {
+        // Pierce through enemies
+        return new PiercingShot(x, y, this.target.x - x, this.target.y - y, this.damage);
+    }
+
     drawSymbol(ctx) {
-        // Draw crosshair symbol
         ctx.strokeStyle = '#FFF';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -163,8 +214,12 @@ class RapidTower extends BaseTower {
         this.range = 100;
     }
 
+    specialAbility(x, y) {
+        // Multi-shot
+        return new MultiShot(x, y, this.damage * 0.5, 3);
+    }
+
     drawSymbol(ctx) {
-        // Draw multiple small dots
         ctx.fillStyle = '#FFF';
         for (let i = 0; i < 3; i++) {
             ctx.beginPath();
@@ -175,37 +230,43 @@ class RapidTower extends BaseTower {
 }
 
 class Projectile {
-    constructor(x, y, target, damage, color = '#FFA500') {
+    constructor(x, y, target, damage, color = '#FFA500', isSpecial = false, specialAbility = null) {
         this.x = x;
         this.y = y;
         this.target = target;
         this.damage = damage;
         this.speed = 5;
-        this.size = 5;
+        this.size = isSpecial ? 7 : 5;
         this.isDead = false;
-        this.color = color;
+        this.color = isSpecial ? '#FFD700' : color;
+        this.isSpecial = isSpecial;
+        this.specialAbility = specialAbility;
     }
 
     update(deltaTime) {
         if (this.isDead) return;
 
-        // Move towards target
         const dx = this.target.x - this.x;
         const dy = this.target.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < this.speed || this.target.isDead) {
-            // Hit target or target died
             if (!this.target.isDead) {
                 this.target.takeDamage(this.damage);
+                if (this.isSpecial && this.specialAbility) {
+                    const effect = this.specialAbility(this.x, this.y);
+                    if (effect) {
+                        return effect;
+                    }
+                }
             }
             this.isDead = true;
-            return;
+            return null;
         }
 
-        // Move projectile
         this.x += (dx / distance) * this.speed;
         this.y += (dy / distance) * this.speed;
+        return null;
     }
 
     draw(ctx) {
@@ -215,6 +276,141 @@ class Projectile {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
+
+        if (this.isSpecial) {
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+}
+
+class Explosion {
+    constructor(x, y, radius, damage) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.damage = damage;
+        this.currentRadius = 0;
+        this.growthRate = 2;
+        this.isDead = false;
+    }
+
+    update(deltaTime) {
+        if (this.isDead) return null;
+
+        this.currentRadius += this.growthRate;
+        if (this.currentRadius >= this.radius) {
+            this.isDead = true;
+        }
+        return null;
+    }
+
+    draw(ctx) {
+        if (this.isDead) return;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 165, 0, 0.3)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 165, 0, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
+class PiercingShot {
+    constructor(x, y, dx, dy, damage) {
+        this.x = x;
+        this.y = y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        this.dx = (dx / dist) * 10;
+        this.dy = (dy / dist) * 10;
+        this.damage = damage;
+        this.length = 40;
+        this.isDead = false;
+        this.lifetime = 20;
+    }
+
+    update(deltaTime) {
+        if (this.isDead) return null;
+
+        this.x += this.dx;
+        this.y += this.dy;
+        this.lifetime--;
+
+        if (this.lifetime <= 0) {
+            this.isDead = true;
+        }
+        return null;
+    }
+
+    draw(ctx) {
+        if (this.isDead) return;
+
+        ctx.beginPath();
+        ctx.moveTo(this.x - this.dx * this.length/2, this.y - this.dy * this.length/2);
+        ctx.lineTo(this.x + this.dx * this.length/2, this.y + this.dy * this.length/2);
+        ctx.strokeStyle = '#FF00FF';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+    }
+}
+
+class MultiShot {
+    constructor(x, y, damage, count) {
+        this.x = x;
+        this.y = y;
+        this.damage = damage;
+        this.count = count;
+        this.particles = [];
+        this.isDead = false;
+        this.init();
+    }
+
+    init() {
+        for (let i = 0; i < this.count; i++) {
+            const angle = (i / this.count) * Math.PI * 2;
+            this.particles.push({
+                x: this.x,
+                y: this.y,
+                dx: Math.cos(angle) * 5,
+                dy: Math.sin(angle) * 5,
+                life: 20
+            });
+        }
+    }
+
+    update(deltaTime) {
+        if (this.isDead) return null;
+
+        let allDead = true;
+        this.particles.forEach(particle => {
+            if (particle.life > 0) {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life--;
+                allDead = false;
+            }
+        });
+
+        if (allDead) {
+            this.isDead = true;
+        }
+        return null;
+    }
+
+    draw(ctx) {
+        if (this.isDead) return;
+
+        this.particles.forEach(particle => {
+            if (particle.life > 0) {
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#90EE90';
+                ctx.fill();
+            }
+        });
     }
 }
 
