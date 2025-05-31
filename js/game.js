@@ -12,6 +12,13 @@ class Game {
         this.reset();
         // Make the game instance globally accessible
         window.gameInstance = this;
+
+        // Load assets before starting
+        assetManager.loadAssets().then(() => {
+            console.log('Assets loaded successfully');
+        }).catch(error => {
+            console.error('Failed to load assets:', error);
+        });
     }
 
     reset() {

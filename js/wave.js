@@ -40,7 +40,6 @@ class WaveSystem {
                     this.config.enemyHealth * 5,  // Boss has 5x health
                     this.config.enemySpeed * 0.7  // Boss is slower
                 );
-                enemy.value *= 5; // Boss gives 5x money
             } else {
                 // Determine enemy type based on wave number and available types
                 let enemyType = this.getEnemyTypeForWave();

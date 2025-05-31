@@ -12,6 +12,8 @@ class Enemy {
         this.size = 20;
         this.color = '#e74c3c';
         this.isAlive = true;
+        this.rotation = 0;
+        this.type = 'basic'; // Add type property
     }
 
     takeDamage(amount) {
@@ -29,6 +31,9 @@ class Enemy {
         const dx = targetPoint.x - this.x;
         const dy = targetPoint.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Update rotation to face movement direction
+        this.rotation = Math.atan2(dy, dx);
 
         if (distance < this.speed) {
             // Reached current target point
@@ -50,18 +55,34 @@ class Enemy {
     draw(ctx) {
         if (!this.isAlive) return;
 
-        // Draw enemy body
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+
+        // Try to use image first
+        const img = assetManager.getImage(`${this.type}Enemy`);
+        if (img) {
+            ctx.drawImage(img, 
+                -this.size, 
+                -this.size, 
+                this.size * 2, 
+                this.size * 2
+            );
+        } else {
+            // Fallback to shape drawing
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
 
         // Draw health bar
         const healthBarWidth = this.size * 2;
         const healthBarHeight = 4;
         const healthPercentage = this.health / this.maxHealth;
         
-        // Health bar background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(
             this.x - healthBarWidth/2,
@@ -70,7 +91,6 @@ class Enemy {
             healthBarHeight
         );
         
-        // Health bar fill
         ctx.fillStyle = healthPercentage > 0.5 ? '#2ecc71' : healthPercentage > 0.2 ? '#f1c40f' : '#e74c3c';
         ctx.fillRect(
             this.x - healthBarWidth/2,
@@ -89,6 +109,7 @@ class SpeedEnemy extends Enemy {
         this.value = 15;
         this.trail = [];
         this.maxTrailLength = 5;
+        this.type = 'speed';
     }
 
     update(deltaTime) {
@@ -102,17 +123,34 @@ class SpeedEnemy extends Enemy {
     }
 
     draw(ctx) {
-        // Draw trail
+        // Draw trail first
         ctx.globalAlpha = 0.3;
         this.trail.forEach((pos, index) => {
             const alpha = index / this.trail.length;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, this.size * alpha, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            ctx.rotate(this.rotation);
+            
+            const img = assetManager.getImage(this.type + 'Enemy');
+            if (img) {
+                ctx.globalAlpha = alpha * 0.3;
+                ctx.drawImage(img, 
+                    -this.size, 
+                    -this.size, 
+                    this.size * 2, 
+                    this.size * 2
+                );
+            } else {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * alpha, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
         });
         ctx.globalAlpha = 1;
         
+        // Draw main enemy
         super.draw(ctx);
     }
 }
@@ -124,25 +162,11 @@ class ArmoredEnemy extends Enemy {
         this.size = 25;
         this.value = 20;
         this.armor = 2; // Takes half damage
+        this.type = 'armored';
     }
 
-    draw(ctx) {
-        super.draw(ctx);
-        
-        // Draw armor plates
-        ctx.strokeStyle = '#2c3e50';
-        ctx.lineWidth = 3;
-        for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.arc(
-                this.x,
-                this.y,
-                this.size - 5 + i * 5,
-                (i * Math.PI / 1.5),
-                ((i + 1) * Math.PI / 1.5)
-            );
-            ctx.stroke();
-        }
+    takeDamage(amount) {
+        super.takeDamage(amount / this.armor);
     }
 }
 
@@ -154,26 +178,46 @@ class LayeredEnemy extends Enemy {
         this.value = 25;
         this.layers = 3;
         this.currentLayer = this.layers;
+        this.type = 'layered';
     }
 
     update(deltaTime) {
         super.update(deltaTime);
-        
-        // Update layer based on health percentage
         this.currentLayer = Math.ceil((this.health / this.maxHealth) * this.layers);
     }
 
     draw(ctx) {
-        // Draw layers
-        for (let i = 0; i < this.currentLayer; i++) {
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = 0.3 + (0.7 * (i / this.layers));
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size - (i * 4), 0, Math.PI * 2);
-            ctx.fill();
+        if (!this.isAlive) return;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+
+        const img = assetManager.getImage(this.type + 'Enemy');
+        if (img) {
+            // Draw each layer with decreasing opacity
+            for (let i = 0; i < this.currentLayer; i++) {
+                ctx.globalAlpha = 0.3 + (0.7 * (i / this.layers));
+                ctx.drawImage(img, 
+                    -this.size + (i * 2), 
+                    -this.size + (i * 2), 
+                    this.size * 2 - (i * 4), 
+                    this.size * 2 - (i * 4)
+                );
+            }
+        } else {
+            // Fallback layered drawing
+            for (let i = 0; i < this.currentLayer; i++) {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 0.3 + (0.7 * (i / this.layers));
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size - (i * 4), 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
+        ctx.restore();
         ctx.globalAlpha = 1;
-        
+
         // Draw health bar
         const healthBarWidth = this.size * 2;
         const healthBarHeight = 4;
@@ -205,6 +249,7 @@ class BossEnemy extends Enemy {
         this.value = 100;
         this.rotation = 0;
         this.spikes = 8;
+        this.type = 'boss';
     }
 
     update(deltaTime) {
@@ -213,29 +258,64 @@ class BossEnemy extends Enemy {
     }
 
     draw(ctx) {
-        // Draw base
-        super.draw(ctx);
-        
-        // Draw rotating spikes
+        if (!this.isAlive) return;
+
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
-        
-        ctx.strokeStyle = '#d35400';
-        ctx.lineWidth = 3;
-        
-        for (let i = 0; i < this.spikes; i++) {
-            const angle = (i / this.spikes) * Math.PI * 2;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(
-                Math.cos(angle) * (this.size + 15),
-                Math.sin(angle) * (this.size + 15)
+
+        const img = assetManager.getImage(this.type + 'Enemy');
+        if (img) {
+            ctx.drawImage(img, 
+                -this.size * 1.5, 
+                -this.size * 1.5, 
+                this.size * 3, 
+                this.size * 3
             );
-            ctx.stroke();
+        } else {
+            // Fallback shape drawing
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw spikes
+            ctx.strokeStyle = '#d35400';
+            ctx.lineWidth = 3;
+            
+            for (let i = 0; i < this.spikes; i++) {
+                const angle = (i / this.spikes) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(
+                    Math.cos(angle) * (this.size + 15),
+                    Math.sin(angle) * (this.size + 15)
+                );
+                ctx.stroke();
+            }
         }
-        
         ctx.restore();
+
+        // Draw health bar
+        const healthBarWidth = this.size * 2;
+        const healthBarHeight = 4;
+        const healthPercentage = this.health / this.maxHealth;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(
+            this.x - healthBarWidth/2,
+            this.y - this.size - 10,
+            healthBarWidth,
+            healthBarHeight
+        );
+        
+        ctx.fillStyle = healthPercentage > 0.5 ? '#2ecc71' : healthPercentage > 0.2 ? '#f1c40f' : '#e74c3c';
+        ctx.fillRect(
+            this.x - healthBarWidth/2,
+            this.y - this.size - 10,
+            healthBarWidth * healthPercentage,
+            healthBarHeight
+        );
     }
 }
 
@@ -245,4 +325,12 @@ const EnemyTypes = {
     Armored: ArmoredEnemy,
     Layered: LayeredEnemy,
     Boss: BossEnemy
-}; 
+};
+
+// Export enemy classes
+window.Enemy = Enemy;
+window.SpeedEnemy = SpeedEnemy;
+window.ArmoredEnemy = ArmoredEnemy;
+window.LayeredEnemy = LayeredEnemy;
+window.BossEnemy = BossEnemy;
+window.EnemyTypes = EnemyTypes; 

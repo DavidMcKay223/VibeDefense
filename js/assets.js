@@ -50,6 +50,10 @@ class AssetManager {
             Object.entries(assets).forEach(([key, path]) => {
                 const img = new Image();
                 img.onload = onLoad;
+                img.onerror = () => {
+                    console.warn(`Failed to load asset: ${path}`);
+                    onLoad(); // Still count as loaded to avoid blocking
+                };
                 img.src = path;
                 this.images[key] = img;
             });
@@ -63,6 +67,5 @@ class AssetManager {
     }
 }
 
-// Create and export a singleton instance
-const assetManager = new AssetManager();
-window.assetManager = assetManager; 
+// Create global instance
+window.assetManager = new AssetManager(); 

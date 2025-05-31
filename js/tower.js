@@ -31,58 +31,50 @@ class Tower {
 
     update(deltaTime, enemies) {
         // Update projectiles
-        this.projectiles = this.projectiles.filter(proj => !proj.update(deltaTime));
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const projectile = this.projectiles[i];
+            if (projectile.update(deltaTime)) {
+                this.projectiles.splice(i, 1);
+            }
+        }
 
-        // Find new target if needed
+        // Find target if we don't have one or current target is dead/out of range
         if (!this.targetEnemy || !this.targetEnemy.isAlive || !this.isInRange(this.targetEnemy)) {
             this.targetEnemy = this.findTarget(enemies);
         }
 
-        // Fire at target if ready
-        const currentTime = Date.now();
-        if (this.targetEnemy && currentTime - this.lastFireTime >= this.fireRate) {
-            this.shoot(this.targetEnemy);
-            this.lastFireTime = currentTime;
+        // Fire at target if we have one
+        if (this.targetEnemy && this.targetEnemy.isAlive) {
+            const currentTime = performance.now();
+            if (currentTime - this.lastFireTime >= this.fireRate) {
+                this.fire();
+                this.lastFireTime = currentTime;
+            }
         }
     }
 
     findTarget(enemies) {
-        // Filter out dead enemies and find the closest one in range
-        return enemies
-            .filter(enemy => enemy.isAlive)
-            .find(enemy => this.isInRange(enemy));
+        // Find the first enemy in range
+        return enemies.find(enemy => enemy.isAlive && this.isInRange(enemy));
     }
 
     isInRange(enemy) {
-        if (!enemy) return false;
         const dx = enemy.x - this.x;
         const dy = enemy.y - this.y;
-        return Math.sqrt(dx * dx + dy * dy) <= this.range;
+        return (dx * dx + dy * dy) <= this.range * this.range;
     }
 
-    shoot(target) {
-        if (!target || !target.isAlive) return;
-
+    fire() {
         this.shotCount++;
-        const isSpecialShot = this.level === this.maxLevel && this.shotCount % this.specialShotInterval === 0;
+        let damage = this.damage;
 
-        // Calculate barrel end position based on rotation
-        const barrelLength = this.size/2;
-        const rotation = Math.atan2(target.y - this.y, target.x - this.x);
-        const startX = this.x + Math.cos(rotation) * barrelLength;
-        const startY = this.y + Math.sin(rotation) * barrelLength;
-
-        const projectile = new Projectile(startX, startY, target, this.damage);
-        this.projectiles.push(projectile);
-
-        // Handle special shot if applicable
-        if (isSpecialShot && this.specialAbility) {
-            this.specialAbility(startX, startY, target);
+        // Special shot for max level towers
+        if (this.level === this.maxLevel && this.shotCount % this.specialShotInterval === 0) {
+            damage *= 2;
         }
-    }
 
-    specialAbility(x, y, target) {
-        // Override in subclasses
+        const projectile = new Projectile(this.x, this.y, this.targetEnemy, damage);
+        this.projectiles.push(projectile);
     }
 
     draw(ctx, alpha = 1) {
@@ -134,44 +126,51 @@ class Tower {
     }
 
     drawLevelGems(ctx, alpha) {
-        const gemColors = ['#FFD700', '#FF5733', '#9B59B6'];
-        const gemSize = 6;
-        const spacing = gemSize * 2;
-        const startX = this.x - ((this.level - 1) * spacing) / 2;
+        const gemSize = 4;
+        const spacing = 8;
+        const startX = this.x - ((this.maxLevel - 1) * spacing) / 2;
         
-        for (let i = 0; i < this.level; i++) {
+        for (let i = 0; i < this.maxLevel; i++) {
             ctx.beginPath();
-            ctx.moveTo(startX + i * spacing, this.y + this.size/2 + gemSize);
-            ctx.lineTo(startX + i * spacing - gemSize/2, this.y + this.size/2 + gemSize * 2);
-            ctx.lineTo(startX + i * spacing + gemSize/2, this.y + this.size/2 + gemSize * 2);
-            ctx.closePath();
+            ctx.arc(startX + i * spacing, this.y - this.size/2 - 5, gemSize, 0, Math.PI * 2);
             
-            ctx.fillStyle = `rgba(${gemColors[this.level - 1]}, ${alpha})`;
-            ctx.fill();
-            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            if (i < this.level) {
+                // Filled gem for current level
+                ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`;
+                ctx.fill();
+            } else {
+                // Empty gem for potential upgrades
+                ctx.strokeStyle = `rgba(149, 165, 166, ${alpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
         }
     }
 
     upgrade() {
         if (this.level < this.maxLevel) {
             this.level++;
-            this.damage = this.baseStats.damage * this.level;
+            
+            // Increase stats with each level
+            this.damage = this.baseStats.damage * (1 + (this.level - 1) * 0.5); // +50% per level
+            this.range = this.baseStats.range * (1 + (this.level - 1) * 0.2);  // +20% per level
+            this.fireRate = this.baseStats.fireRate * (1 - (this.level - 1) * 0.15); // -15% per level
+            
             return true;
         }
         return false;
     }
 
     getUpgradeCost() {
-        return this.level < this.maxLevel ? this.constructor.cost * 0.75 : Infinity;
+        if (this.level >= this.maxLevel) return Infinity;
+        return Math.floor(this.constructor.cost * (1 + this.level * 0.5));
     }
 }
 
 class BasicTower extends Tower {
     constructor(x, y) {
         super(x, y);
-        this.damage = 10;
+        this.damage = 20;
         this.range = 120;
         this.fireRate = 1000;
         this.projectileColor = '#4A90E2'; // Blue projectiles
@@ -213,10 +212,10 @@ class BasicTower extends Tower {
             ctx.rotate(this.rotation);
             ctx.globalAlpha = alpha;
             ctx.drawImage(towerImg, 
-                -this.size/2, // Adjusted from -this.size
-                -this.size/2, // Adjusted from -this.size
-                this.size,    // Adjusted from this.size * 2
-                this.size     // Adjusted from this.size * 2
+                -this.size/2,
+                -this.size/2,
+                this.size,
+                this.size
             );
         } else {
             // Fallback shape drawing
@@ -226,7 +225,7 @@ class BasicTower extends Tower {
             ctx.beginPath();
             ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillRect(0, -2, this.size/2, 4); // Adjusted cannon size and position
+            ctx.fillRect(0, -2, this.size/2, 4);
         }
 
         ctx.restore();
@@ -240,7 +239,7 @@ class BasicTower extends Tower {
 class SniperTower extends Tower {
     constructor(x, y) {
         super(x, y);
-        this.damage = 50;
+        this.damage = 100;
         this.range = 200;
         this.fireRate = 2000;
         this.projectileColor = '#9B59B6'; // Purple projectiles
@@ -282,32 +281,19 @@ class SniperTower extends Tower {
             ctx.rotate(this.rotation);
             ctx.globalAlpha = alpha;
             ctx.drawImage(towerImg, 
-                -this.size/2, // Adjusted from -this.size
-                -this.size/2, // Adjusted from -this.size
-                this.size,    // Adjusted from this.size * 2
-                this.size     // Adjusted from this.size * 2
+                -this.size/2,
+                -this.size/2,
+                this.size,
+                this.size
             );
         } else {
             // Fallback shape drawing
             ctx.translate(this.x, this.y);
             ctx.rotate(this.rotation);
             ctx.fillStyle = `rgba(155, 89, 182, ${alpha})`;
-            
-            // Draw octagonal base
             ctx.beginPath();
-            const sides = 8;
-            const size = this.size/2;
-            for (let i = 0; i < sides; i++) {
-                const angle = (i / sides) * Math.PI * 2;
-                const x = Math.cos(angle) * size;
-                const y = Math.sin(angle) * size;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
+            ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
             ctx.fill();
-
-            // Draw the barrel (adjusted position and size)
             ctx.fillRect(0, -2, this.size * 0.75, 4);
         }
 
@@ -324,14 +310,14 @@ class SniperTower extends Tower {
     }
 
     static get cost() {
-        return 200;
+        return 250;
     }
 }
 
 class RapidTower extends Tower {
     constructor(x, y) {
         super(x, y);
-        this.damage = 5;
+        this.damage = 10;
         this.range = 100;
         this.fireRate = 400;
         this.projectileColor = '#2ECC71'; // Green projectiles
@@ -373,10 +359,10 @@ class RapidTower extends Tower {
             ctx.rotate(this.rotation);
             ctx.globalAlpha = alpha;
             ctx.drawImage(towerImg, 
-                -this.size/2, // Adjusted from -this.size
-                -this.size/2, // Adjusted from -this.size
-                this.size,    // Adjusted from this.size * 2
-                this.size     // Adjusted from this.size * 2
+                -this.size/2,
+                -this.size/2,
+                this.size,
+                this.size
             );
         } else {
             // Fallback shape drawing
