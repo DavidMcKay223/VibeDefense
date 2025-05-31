@@ -6,6 +6,7 @@ class Game {
         this.height = canvas.height;
         this.reset();
         this.menu = new GameMenu(this);
+        this.shop = new Shop(this);
     }
 
     reset() {
@@ -26,6 +27,8 @@ class Game {
         this.setupWaveCallbacks();
         this.setupUI();
         this.isPaused = false;
+        // Show shop when game starts
+        document.getElementById('shopPanel').style.display = 'block';
         this.start();
     }
 
@@ -159,6 +162,8 @@ class Game {
             if (this.canPlaceTower(x, y)) {
                 const NewTowerType = Tower.selectedType;
                 const tower = new NewTowerType(x, y);
+                // Apply shop upgrades to new tower
+                this.shop.applyUpgrades(tower);
                 this.towers.push(tower);
                 this.money -= NewTowerType.cost;
                 this.updateUI();
@@ -270,6 +275,8 @@ class Game {
         if (gameOverScreen) {
             gameOverScreen.style.display = 'none';
         }
+        // Hide shop when returning to level select
+        document.getElementById('shopPanel').style.display = 'none';
         this.menu.showScreen('levelSelect');
     }
 

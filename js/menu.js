@@ -12,6 +12,7 @@ class GameMenu {
         this.levelSelect = document.getElementById('levelSelect');
         this.leftPanel = document.getElementById('leftPanel');
         this.rightPanel = document.getElementById('rightPanel');
+        this.shopPanel = document.getElementById('shopPanel');
 
         // Setup event listeners
         document.getElementById('startGameBtn').addEventListener('click', () => {
@@ -117,6 +118,9 @@ class GameMenu {
         // Handle side panels
         this.leftPanel.style.display = screenName === 'game' ? 'flex' : 'none';
         this.rightPanel.style.display = screenName === 'game' ? 'flex' : 'none';
+
+        // Handle shop panel
+        this.shopPanel.style.display = screenName === 'game' ? 'block' : 'none';
 
         // Update preview sizes when showing level select
         if (screenName === 'levelSelect') {

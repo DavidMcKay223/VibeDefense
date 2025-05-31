@@ -33,7 +33,14 @@
             max-height: 800px;
             margin: 0 auto;
             display: flex;
+            flex-direction: column;
             gap: 20px;
+        }
+
+        .game-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
         }
 
         /* Side panels */
@@ -389,84 +396,201 @@
                 max-height: 600px;
             }
         }
+
+        /* Shop Panel */
+        #shopPanel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            width: 100%;
+            display: none;
+            max-height: 250px;
+        }
+
+        #shopPanel h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #3498db;
+            text-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+        }
+
+        .shop-items {
+            display: flex;
+            gap: 15px;
+            padding-right: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .shop-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s;
+            min-width: 250px;
+            flex-shrink: 0;
+        }
+
+        .shop-item:hover {
+            background: rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Scrollbar Styles */
+        .shop-items::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .shop-items::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .shop-items::-webkit-scrollbar-thumb {
+            background: rgba(52, 152, 219, 0.5);
+            border-radius: 4px;
+        }
+
+        .shop-items::-webkit-scrollbar-thumb:hover {
+            background: rgba(52, 152, 219, 0.7);
+        }
+
+        .item-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #f1c40f;
+        }
+
+        .item-info p {
+            font-size: 12px;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        .bonus-text {
+            color: #2ecc71 !important;
+            font-style: italic;
+        }
+
+        .buy-button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            background: #2ecc71;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .buy-button:hover:not(:disabled) {
+            background: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .buy-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .buy-button.cant-afford {
+            background: #e74c3c;
+            opacity: 0.7;
+        }
+
+        .buy-button.cant-afford:hover {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <div id="leftPanel">
-            <div id="towers">
-                <button class="tower-button" data-type="Basic">
-                    Basic Tower
-                    <span class="tower-cost">100</span>
-                </button>
-                <button class="tower-button" data-type="Sniper">
-                    Sniper Tower
-                    <span class="tower-cost">200</span>
-                </button>
-                <button class="tower-button" data-type="Rapid">
-                    Rapid Tower
-                    <span class="tower-cost">150</span>
-                </button>
+        <div class="game-content">
+            <div id="leftPanel">
+                <div id="towers">
+                    <button class="tower-button" data-type="Basic">
+                        Basic Tower
+                        <span class="tower-cost">100</span>
+                    </button>
+                    <button class="tower-button" data-type="Sniper">
+                        Sniper Tower
+                        <span class="tower-cost">200</span>
+                    </button>
+                    <button class="tower-button" data-type="Rapid">
+                        Rapid Tower
+                        <span class="tower-cost">150</span>
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <div id="mainArea">
-            <canvas id="gameCanvas" width="800" height="600"></canvas>
-            
-            <div id="splashScreen">
-                <div class="logo">
-                    <div class="logo-tower">
-                        <div class="tower-base"></div>
-                        <div class="tower-top"></div>
-                        <div class="tower-window"></div>
-                        <div class="tower-light"></div>
+            <div id="mainArea">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                
+                <div id="splashScreen">
+                    <div class="logo">
+                        <div class="logo-tower">
+                            <div class="tower-base"></div>
+                            <div class="tower-top"></div>
+                            <div class="tower-window"></div>
+                            <div class="tower-light"></div>
+                        </div>
+                        <h1>VIBE DEFENSE</h1>
                     </div>
-                    <h1>VIBE DEFENSE</h1>
+                    <button id="startGameBtn">Start Game</button>
                 </div>
-                <button id="startGameBtn">Start Game</button>
-            </div>
 
-            <div id="levelSelect">
-                <h2>Select Level</h2>
-                <div class="level-grid">
-                    <!-- Level cards will be generated by JavaScript -->
+                <div id="levelSelect">
+                    <h2>Select Level</h2>
+                    <div class="level-grid">
+                        <!-- Level cards will be generated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="waveMessage"></div>
+                <div id="gameOver">
+                    <h2>Game Over!</h2>
+                    <p>Final Score: <span id="finalScore">0</span></p>
+                    <button onclick="game.restart()">Play Again</button>
+                </div>
+
+                <div id="towerUpgrade">
+                    <h3>Tower Upgrade</h3>
+                    <p class="upgrade-cost">Cost: <span>0</span></p>
+                    <button id="upgradeButton">Upgrade</button>
                 </div>
             </div>
 
-            <div id="waveMessage"></div>
-            <div id="gameOver">
-                <h2>Game Over!</h2>
-                <p>Final Score: <span id="finalScore">0</span></p>
-                <button onclick="game.restart()">Play Again</button>
-            </div>
-
-            <div id="towerUpgrade">
-                <h3>Tower Upgrade</h3>
-                <p class="upgrade-cost">Cost: <span>0</span></p>
-                <button id="upgradeButton">Upgrade</button>
+            <div id="rightPanel">
+                <div id="stats">
+                    <div class="stat">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI5IiBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNCODg2MEIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjEwIiB5PSIxNCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCODg2MEIiPiQ8L3RleHQ+PC9zdmc+" alt="Money">
+                        <span id="money">200</span>
+                    </div>
+                    <div class="stat">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTcuOGwtMS40NS0xLjMyQzQuMiAxMi4zNiAxIDkuMjggMSA1LjUgMSAyLjQyIDMuNDIgMCA2LjUgMGMxLjc0IDAgMy40MS44MSA0LjUgMi4wOUMxMi4wOS44MSAxMy43NiAwIDE1LjUgMCAxOC41OCAwIDIxIDIuNDIgMjEgNS41YzAgMy43OC0zLjIgNi44Ni03LjU1IDEwLjk4TDEwIDE3Ljh6IiBmaWxsPSIjRkY0NDQ0Ii8+PC9zdmc+" alt="Lives">
+                        <span id="lives">20</span>
+                    </div>
+                    <div class="stat">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMGwyLjUgNy43aDguMWwtNi42IDQuOCAyLjUgNy43LTYuNS00LjctNi41IDQuNyAyLjUtNy43LTYuNi00LjhoOC4xeiIgZmlsbD0iI0ZGRDcwMCIvPjwvc3ZnPg==" alt="Score">
+                        <span id="score">0</span>
+                    </div>
+                    <div class="stat">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAxMCBRIDUgNSwgMTAgMTAgVCAyMCAxMCIgc3Ryb2tlPSIjMzQ5OGRiIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAxNSBRIDUgMTAsIDEwIDE1IFQgMjAgMTUiIHN0cm9rZT0iIzM0OThkYiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Wave">
+                        <span id="wave">0</span>
+                    </div>
+                </div>
+                <button id="startWave">Start Wave</button>
             </div>
         </div>
-
-        <div id="rightPanel">
-            <div id="stats">
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI5IiBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNCODg2MEIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjEwIiB5PSIxNCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCODg2MEIiPiQ8L3RleHQ+PC9zdmc+" alt="Money">
-                    <span id="money">200</span>
-                </div>
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTcuOGwtMS40NS0xLjMyQzQuMiAxMi4zNiAxIDkuMjggMSA1LjUgMSAyLjQyIDMuNDIgMCA2LjUgMGMxLjc0IDAgMy40MS44MSA0LjUgMi4wOUMxMi4wOS44MSAxMy43NiAwIDE1LjUgMCAxOC41OCAwIDIxIDIuNDIgMjEgNS41YzAgMy43OC0zLjIgNi44Ni03LjU1IDEwLjk4TDEwIDE3Ljh6IiBmaWxsPSIjRkY0NDQ0Ii8+PC9zdmc+" alt="Lives">
-                    <span id="lives">20</span>
-                </div>
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMGwyLjUgNy43aDguMWwtNi42IDQuOCAyLjUgNy43LTYuNS00LjctNi41IDQuNyAyLjUtNy43LTYuNi00LjhoOC4xeiIgZmlsbD0iI0ZGRDcwMCIvPjwvc3ZnPg==" alt="Score">
-                    <span id="score">0</span>
-                </div>
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAxMCBRIDUgNSwgMTAgMTAgVCAyMCAxMCIgc3Ryb2tlPSIjMzQ5OGRiIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAxNSBRIDUgMTAsIDEwIDE1IFQgMjAgMTUiIHN0cm9rZT0iIzM0OThkYiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Wave">
-                    <span id="wave">0</span>
-                </div>
-            </div>
-            <button id="startWave">Start Wave</button>
+        
+        <div id="shopPanel">
+            <h2>Magic Shop</h2>
+            <div class="shop-items"></div>
         </div>
     </div>
 
@@ -476,6 +600,7 @@
     <script src="js/wave.js"></script>
     <script src="js/levels.js"></script>
     <script src="js/menu.js"></script>
+    <script src="js/shop.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html> 
