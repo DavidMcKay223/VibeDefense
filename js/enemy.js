@@ -9,6 +9,11 @@ class Enemy {
         this.health = 100;
         this.maxHealth = 100;
         this.isDead = false;
+        this.reachedEnd = false;
+        
+        // Callbacks
+        this.onDeath = () => {};
+        this.onReachEnd = () => {};
     }
 
     update(deltaTime) {
@@ -19,6 +24,8 @@ class Enemy {
         if (!targetPoint) {
             // Reached the end
             this.isDead = true;
+            this.reachedEnd = true;
+            this.onReachEnd();
             return;
         }
 
@@ -32,6 +39,8 @@ class Enemy {
             this.currentPoint++;
             if (this.currentPoint >= this.path.points.length - 1) {
                 this.isDead = true;
+                this.reachedEnd = true;
+                this.onReachEnd();
                 return;
             }
         } else {
@@ -47,6 +56,7 @@ class Enemy {
         this.health -= damage;
         if (this.health <= 0) {
             this.isDead = true;
+            this.onDeath();
         }
     }
 
