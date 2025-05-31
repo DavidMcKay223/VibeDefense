@@ -76,11 +76,11 @@ class Game {
         towerButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const type = button.getAttribute('data-type');
-                const TowerClass = Tower.types[type];
+                const TowerClass = TowerManager.types[type];
                 if (this.money >= TowerClass.cost) {
-                    Tower.isPlacing = true;
-                    Tower.selectedType = TowerClass;
-                    Tower.placementTower = new TowerClass(0, 0);
+                    TowerManager.isPlacing = true;
+                    TowerManager.selectedType = TowerClass;
+                    TowerManager.placementTower = new TowerClass(0, 0);
                 }
             });
         });
@@ -88,7 +88,7 @@ class Game {
         // Update tower costs in UI
         towerButtons.forEach(button => {
             const type = button.getAttribute('data-type');
-            const cost = Tower.types[type].cost;
+            const cost = TowerManager.types[type].cost;
             const costSpan = button.querySelector('.tower-cost');
             if (costSpan) {
                 costSpan.textContent = cost;
@@ -118,9 +118,9 @@ class Game {
         const towerButtons = document.querySelectorAll('.tower-button');
         towerButtons.forEach(button => {
             const type = button.getAttribute('data-type');
-            const TowerClass = Tower.types[type];
+            const TowerClass = TowerManager.types[type];
             button.disabled = this.money < TowerClass.cost;
-            button.classList.toggle('selected', Tower.isPlacing && Tower.selectedType === TowerClass);
+            button.classList.toggle('selected', TowerManager.isPlacing && TowerManager.selectedType === TowerClass);
         });
     }
 
@@ -158,9 +158,9 @@ class Game {
     }
 
     handleClick(x, y) {
-        if (Tower.isPlacing && Tower.placementTower) {
+        if (TowerManager.isPlacing && TowerManager.placementTower) {
             if (this.canPlaceTower(x, y)) {
-                const NewTowerType = Tower.selectedType;
+                const NewTowerType = TowerManager.selectedType;
                 const tower = new NewTowerType(x, y);
                 // Apply shop upgrades to new tower
                 this.shop.applyUpgrades(tower);
@@ -169,31 +169,31 @@ class Game {
                 this.updateUI();
                 
                 // Reset placement state
-                Tower.isPlacing = false;
-                Tower.placementTower = null;
-                Tower.selectedType = null;
+                TowerManager.isPlacing = false;
+                TowerManager.placementTower = null;
+                TowerManager.selectedType = null;
             }
         } else {
             // Hide upgrade UI first
             this.hideTowerUpgradeUI();
             
             // Select existing tower
-            Tower.selectedTower = this.towers.find(tower => {
+            TowerManager.selectedTower = this.towers.find(tower => {
                 const dx = tower.x - x;
                 const dy = tower.y - y;
                 return Math.sqrt(dx * dx + dy * dy) < tower.size;
             });
 
-            if (Tower.selectedTower) {
-                this.showTowerUpgradeUI(Tower.selectedTower);
+            if (TowerManager.selectedTower) {
+                this.showTowerUpgradeUI(TowerManager.selectedTower);
             }
         }
     }
 
     handleMove(x, y) {
-        if (Tower.isPlacing && Tower.placementTower) {
-            Tower.placementTower.x = x;
-            Tower.placementTower.y = y;
+        if (TowerManager.isPlacing && TowerManager.placementTower) {
+            TowerManager.placementTower.x = x;
+            TowerManager.placementTower.y = y;
         }
     }
 
@@ -258,7 +258,7 @@ class Game {
         if (upgradeUI) {
             upgradeUI.style.display = 'none';
         }
-        Tower.selectedTower = null;
+        TowerManager.selectedTower = null;
     }
 
     gameOver() {
@@ -310,20 +310,20 @@ class Game {
         this.waveSystem.draw(this.ctx);
 
         // Draw tower being placed
-        if (Tower.isPlacing && Tower.placementTower) {
+        if (TowerManager.isPlacing && TowerManager.placementTower) {
             const rect = this.canvas.getBoundingClientRect();
-            const x = Tower.placementTower.x;
-            const y = Tower.placementTower.y;
+            const x = TowerManager.placementTower.x;
+            const y = TowerManager.placementTower.y;
             
             // Draw placement radius
             this.ctx.beginPath();
-            this.ctx.arc(x, y, Tower.placementTower.range, 0, Math.PI * 2);
+            this.ctx.arc(x, y, TowerManager.placementTower.range, 0, Math.PI * 2);
             this.ctx.strokeStyle = this.canPlaceTower(x, y) ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 0, 0, 0.2)';
             this.ctx.lineWidth = 2;
             this.ctx.stroke();
             
             // Draw tower preview
-            Tower.placementTower.draw(this.ctx, this.canPlaceTower(x, y) ? 0.8 : 0.4);
+            TowerManager.placementTower.draw(this.ctx, this.canPlaceTower(x, y) ? 0.8 : 0.4);
         }
 
         requestAnimationFrame(this.gameLoop.bind(this));
