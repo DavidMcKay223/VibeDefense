@@ -1,0 +1,69 @@
+{
+    "projectName": "Vibe Defense",
+    "description": "A modern tower defense game built with JavaScript and HTML5 Canvas",
+    "aiSettings": {
+        "preferredLanguage": "javascript",
+        "codeStyle": "modern",
+        "tabSize": 4,
+        "useStrict": true
+    },
+    "context": {
+        "gameStructure": {
+            "mainFiles": {
+                "js/game.js": "Main game loop and core mechanics",
+                "js/enemy.js": "Enemy types and behavior system",
+                "js/tower.js": "Tower types and combat mechanics",
+                "js/path.js": "Path system and visualization",
+                "js/wave.js": "Wave management and difficulty scaling",
+                "js/levels.js": "Level definitions and configurations",
+                "js/menu.js": "Menu system and UI management"
+            },
+            "entryPoint": "index.html"
+        },
+        "features": {
+            "towers": ["Basic", "Sniper", "Rapid"],
+            "enemies": ["Basic", "Speed", "Armored", "Layered", "Boss"],
+            "levels": ["Beginner", "Zigzag", "Spiral", "Maze"]
+        }
+    },
+    "aiInstructions": {
+        "codeGeneration": {
+            "preferredPatterns": [
+                "Use ES6+ features",
+                "Implement proper error handling",
+                "Add descriptive comments",
+                "Follow OOP principles"
+            ],
+            "avoidPatterns": [
+                "Global variables",
+                "Callback hell",
+                "Magic numbers",
+                "Direct DOM manipulation without abstraction"
+            ]
+        },
+        "documentation": {
+            "requireComments": true,
+            "commentStyle": "JSDoc",
+            "includeExamples": true
+        },
+        "testing": {
+            "approach": "Test core game mechanics and edge cases",
+            "focus": ["Path collision", "Tower targeting", "Wave generation"]
+        }
+    },
+    "projectConstraints": {
+        "dependencies": "Vanilla JavaScript only, no external libraries",
+        "browserSupport": "Modern browsers (Chrome, Firefox, Safari, Edge)",
+        "performance": "Target 60 FPS with 50+ entities"
+    },
+    "skipPrompts": {
+        "setup": true,
+        "fileStructure": true,
+        "basicGameMechanics": true
+    },
+    "assumedKnowledge": {
+        "codebase": true,
+        "gameStructure": true,
+        "mechanics": true
+    }
+} 
