@@ -32,7 +32,8 @@
                 "Use ES6+ features",
                 "Implement proper error handling",
                 "Add descriptive comments",
-                "Follow OOP principles"
+                "Follow OOP principles",
+                "STOP FUCKING AROUND with rewriting the code, just make it work!"
             ],
             "avoidPatterns": [
                 "Global variables",

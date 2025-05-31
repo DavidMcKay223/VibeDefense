@@ -14,110 +14,75 @@ class Tower {
         this.size = 30;
         this.range = 100;
         this.damage = 10;
-        this.attackSpeed = 1000; // milliseconds between attacks
-        this.lastAttackTime = 0;
+        this.fireRate = 1000; // milliseconds between shots
+        this.lastFireTime = 0;
         this.targetEnemy = null;
-        this.upgrades = [];
-        this.level = 1;
         this.projectiles = [];
+        this.level = 1;
         this.maxLevel = 3;
         this.shotCount = 0;
         this.specialShotInterval = 5; // Every 5th shot is special when maxed
         this.baseStats = {
             damage: this.damage,
             range: this.range,
-            attackSpeed: this.attackSpeed
+            fireRate: this.fireRate
         };
     }
 
     update(deltaTime, enemies) {
-        // Reset stats to base values before applying upgrades
-        this.damage = this.baseStats.damage * this.level;
-        this.range = this.baseStats.range;
-        this.attackSpeed = this.baseStats.attackSpeed;
-
         // Update projectiles
-        this.projectiles = this.projectiles.filter(proj => !proj.isDead);
-        this.projectiles.forEach(proj => proj.update(deltaTime));
+        this.projectiles = this.projectiles.filter(proj => !proj.update(deltaTime));
 
-        // Find target if don't have one or current target is dead/out of range
-        if (!this.targetEnemy || !enemies.includes(this.targetEnemy) || 
-            this.getDistanceToEnemy(this.targetEnemy) > this.range) {
+        // Find new target if needed
+        if (!this.targetEnemy || !this.targetEnemy.isAlive || !this.isInRange(this.targetEnemy)) {
             this.targetEnemy = this.findTarget(enemies);
         }
 
-        // Attack if we have a target and enough time has passed
-        if (this.targetEnemy && performance.now() - this.lastAttackTime >= this.attackSpeed) {
+        // Fire at target if ready
+        const currentTime = Date.now();
+        if (this.targetEnemy && currentTime - this.lastFireTime >= this.fireRate) {
             this.shoot(this.targetEnemy);
-            this.lastAttackTime = performance.now();
+            this.lastFireTime = currentTime;
         }
     }
 
     findTarget(enemies) {
-        // Find the enemy that's furthest along the path within range
+        // Filter out dead enemies and find the closest one in range
         return enemies
-            .filter(enemy => this.getDistanceToEnemy(enemy) <= this.range)
-            .sort((a, b) => b.distanceTraveled - a.distanceTraveled)[0];
+            .filter(enemy => enemy.isAlive)
+            .find(enemy => this.isInRange(enemy));
     }
 
-    shoot(enemy) {
-        if (!enemy) return;
+    isInRange(enemy) {
+        if (!enemy) return false;
+        const dx = enemy.x - this.x;
+        const dy = enemy.y - this.y;
+        return Math.sqrt(dx * dx + dy * dy) <= this.range;
+    }
+
+    shoot(target) {
+        if (!target || !target.isAlive) return;
 
         this.shotCount++;
         const isSpecialShot = this.level === this.maxLevel && this.shotCount % this.specialShotInterval === 0;
-        
-        let currentDamage = this.damage;
-
-        // Apply magical upgrades
-        if (this.upgrades) {
-            this.upgrades.forEach(upgrade => {
-                if (upgrade.effect) {
-                    // Store original stats
-                    const originalDamage = this.damage;
-                    const originalRange = this.range;
-                    const originalAttackSpeed = this.attackSpeed;
-
-                    // Apply the upgrade effect
-                    upgrade.effect(this, enemy);
-
-                    // If damage was modified by the effect, use the new value
-                    if (this.damage !== originalDamage) {
-                        currentDamage = this.damage;
-                    }
-
-                    // Restore original stats (effects should be temporary per shot)
-                    this.damage = originalDamage;
-                    this.range = originalRange;
-                    this.attackSpeed = originalAttackSpeed;
-                }
-            });
-        }
 
         // Calculate barrel end position based on rotation
         const barrelLength = this.size/2;
-        const rotation = Math.atan2(enemy.y - this.y, enemy.x - this.x);
+        const rotation = Math.atan2(target.y - this.y, target.x - this.x);
         const startX = this.x + Math.cos(rotation) * barrelLength;
         const startY = this.y + Math.sin(rotation) * barrelLength;
 
-        this.projectiles.push(new Projectile(
-            startX,
-            startY,
-            enemy,
-            currentDamage,
-            this.projectileColor || '#FFA500',
-            isSpecialShot,
-            this.specialAbility ? this.specialAbility.bind(this) : null
-        ));
+        const projectile = new Projectile(startX, startY, target, this.damage);
+        this.projectiles.push(projectile);
+
+        // Handle special shot if applicable
+        if (isSpecialShot && this.specialAbility) {
+            this.specialAbility(startX, startY, target);
+        }
     }
 
-    specialAbility(x, y) {
+    specialAbility(x, y, target) {
         // Override in subclasses
-    }
-
-    getDistanceToEnemy(enemy) {
-        const dx = enemy.x - this.x;
-        const dy = enemy.y - this.y;
-        return Math.sqrt(dx * dx + dy * dy);
     }
 
     draw(ctx, alpha = 1) {
@@ -150,7 +115,7 @@ class Tower {
         this.projectiles.forEach(proj => proj.draw(ctx));
 
         // Draw targeting line
-        if (this.targetEnemy && !this.targetEnemy.isDead) {
+        if (this.targetEnemy && this.targetEnemy.isAlive) {
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
             ctx.lineTo(this.targetEnemy.x, this.targetEnemy.y);
@@ -208,12 +173,12 @@ class BasicTower extends Tower {
         super(x, y);
         this.damage = 10;
         this.range = 120;
-        this.attackSpeed = 1000;
+        this.fireRate = 1000;
         this.projectileColor = '#4A90E2'; // Blue projectiles
         this.baseStats = {
             damage: this.damage,
             range: this.range,
-            attackSpeed: this.attackSpeed
+            fireRate: this.fireRate
         };
         this.rotation = 0;
     }
@@ -277,12 +242,12 @@ class SniperTower extends Tower {
         super(x, y);
         this.damage = 50;
         this.range = 200;
-        this.attackSpeed = 2000;
+        this.fireRate = 2000;
         this.projectileColor = '#9B59B6'; // Purple projectiles
         this.baseStats = {
             damage: this.damage,
             range: this.range,
-            attackSpeed: this.attackSpeed
+            fireRate: this.fireRate
         };
         this.rotation = 0; // Current rotation angle
     }
@@ -349,11 +314,11 @@ class SniperTower extends Tower {
         ctx.restore();
     }
 
-    specialAbility(x, y) {
+    specialAbility(x, y, target) {
         // Sniper towers can pierce through enemies
         return new PiercingShot(x, y, 
-            this.targetEnemy.x - x,
-            this.targetEnemy.y - y,
+            target.x - x,
+            target.y - y,
             this.damage * 1.5
         );
     }
@@ -368,12 +333,12 @@ class RapidTower extends Tower {
         super(x, y);
         this.damage = 5;
         this.range = 100;
-        this.attackSpeed = 400;
+        this.fireRate = 400;
         this.projectileColor = '#2ECC71'; // Green projectiles
         this.baseStats = {
             damage: this.damage,
             range: this.range,
-            attackSpeed: this.attackSpeed
+            fireRate: this.fireRate
         };
         this.rotation = 0;
     }
@@ -434,7 +399,7 @@ class RapidTower extends Tower {
         ctx.restore();
     }
 
-    specialAbility(x, y) {
+    specialAbility(x, y, target) {
         // Rapid towers shoot multiple projectiles in a spread
         return new MultiShot(x, y, this.damage, 5);
     }
@@ -457,229 +422,50 @@ TowerManager.selectedType = BasicTower;
 window.Tower = Tower;
 window.TowerManager = TowerManager;
 
-class BaseTower {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.size = 30;
-        this.range = 100;
-        this.damage = 10;
-        this.fireRate = 1000;
-        this.lastShot = 0;
-        this.target = null;
-        this.projectiles = [];
-        this.level = 1;
-        this.maxLevel = 3;
-        this.shotCount = 0;
-        this.specialShotInterval = 5; // Every 5th shot is special when maxed
-    }
-
-    getUpgradeCost() {
-        return this.level < this.maxLevel ? this.constructor.cost * 0.75 : Infinity;
-    }
-
-    upgrade() {
-        if (this.level < this.maxLevel) {
-            this.level++;
-            // Base stat improvements
-            this.damage *= 1.5;
-            this.range *= 1.2;
-            this.fireRate *= 0.8;
-            return true;
-        }
-        return false;
-    }
-
-    update(deltaTime, enemies) {
-        // Update projectiles
-        this.projectiles = this.projectiles.filter(proj => !proj.isDead);
-        this.projectiles.forEach(proj => proj.update(deltaTime));
-
-        // Find target if we don't have one or current target is dead
-        if (!this.target || this.target.isDead) {
-            this.findTarget(enemies);
-        }
-
-        // Check if target is still in range
-        if (this.target && !this.isInRange(this.target)) {
-            this.target = null;
-        }
-
-        // Shoot if we have a target and enough time has passed
-        if (this.target && Date.now() - this.lastShot >= this.fireRate) {
-            this.shoot();
-        }
-    }
-
-    findTarget(enemies) {
-        this.target = enemies.find(enemy => 
-            !enemy.isDead && this.isInRange(enemy)
-        );
-    }
-
-    isInRange(enemy) {
-        const dx = enemy.x - this.x;
-        const dy = enemy.y - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return distance <= this.range;
-    }
-
-    shoot() {
-        if (!this.target) return;
-        this.createProjectile();
-        this.lastShot = Date.now();
-    }
-
-    createProjectile() {
-        this.shotCount++;
-        const isSpecialShot = this.level === this.maxLevel && this.shotCount % this.specialShotInterval === 0;
-        
-        this.projectiles.push(new Projectile(
-            this.x,
-            this.y,
-            this.target,
-            this.damage,
-            this.projectileColor,
-            isSpecialShot,
-            this.specialAbility.bind(this)
-        ));
-    }
-
-    specialAbility(x, y) {
-        // Override in subclasses
-    }
-
-    draw(ctx) {
-        // Draw tower base (common for all towers)
-        ctx.save();
-        
-        // Draw base platform
-        ctx.beginPath();
-        ctx.ellipse(this.x, this.y + this.size/3, this.size/2, this.size/6, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#555555';
-        ctx.fill();
-
-        // Draw tower body
-        this.drawTowerBody(ctx);
-
-        // Draw level gems
-        this.drawLevelGems(ctx);
-
-        // Draw range circle when selected or placing
-        if (TowerManager.isPlacing || this === TowerManager.selectedTower) {
-            this.drawRangeCircle(ctx);
-        }
-
-        // Draw projectiles
-        this.projectiles.forEach(proj => proj.draw(ctx));
-
-        // Draw targeting line
-        if (this.target && !this.target.isDead) {
-            this.drawTargetingLine(ctx);
-        }
-
-        ctx.restore();
-    }
-
-    drawRangeCircle(ctx) {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(74, 144, 226, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
-        ctx.fill();
-    }
-
-    drawTargetingLine(ctx) {
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.target.x, this.target.y);
-        ctx.strokeStyle = 'rgba(74, 144, 226, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    }
-
-    drawLevelGems(ctx) {
-        const gemColors = ['#FFD700', '#FF5733', '#9B59B6'];
-        const gemSize = 6;
-        const spacing = gemSize * 2;
-        const startX = this.x - ((this.level - 1) * spacing) / 2;
-        
-        for (let i = 0; i < this.level; i++) {
-            ctx.beginPath();
-            ctx.moveTo(startX + i * spacing, this.y + this.size/2 + gemSize);
-            ctx.lineTo(startX + i * spacing - gemSize/2, this.y + this.size/2 + gemSize * 2);
-            ctx.lineTo(startX + i * spacing + gemSize/2, this.y + this.size/2 + gemSize * 2);
-            ctx.closePath();
-            
-            ctx.fillStyle = gemColors[this.level - 1];
-            ctx.fill();
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-    }
-
-    drawTowerBody(ctx) {
-        // Override in subclasses
-    }
-}
-
 class Projectile {
-    constructor(x, y, target, damage, color = '#FFA500', isSpecial = false, specialAbility = null) {
+    constructor(x, y, target, damage, speed = 5) {
         this.x = x;
         this.y = y;
         this.target = target;
         this.damage = damage;
-        this.speed = 5;
-        this.size = isSpecial ? 7 : 5;
-        this.isDead = false;
-        this.color = isSpecial ? '#FFD700' : color;
-        this.isSpecial = isSpecial;
-        this.specialAbility = specialAbility;
+        this.speed = speed;
+        this.radius = 4;
+        this.hasHit = false;
     }
 
     update(deltaTime) {
-        if (this.isDead) return;
+        if (this.hasHit || !this.target || !this.target.isAlive) {
+            return true; // Return true to indicate this projectile should be removed
+        }
 
+        // Calculate direction to target
         const dx = this.target.x - this.x;
         const dy = this.target.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < this.speed || this.target.isDead) {
-            if (!this.target.isDead) {
+        if (distance < this.speed) {
+            // Hit the target
+            if (typeof this.target.takeDamage === 'function') {
                 this.target.takeDamage(this.damage);
-                if (this.isSpecial && this.specialAbility) {
-                    const effect = this.specialAbility(this.x, this.y);
-                    if (effect) {
-                        return effect;
-                    }
-                }
             }
-            this.isDead = true;
-            return null;
+            this.hasHit = true;
+            return true;
         }
 
+        // Move towards target
         this.x += (dx / distance) * this.speed;
         this.y += (dy / distance) * this.speed;
-        return null;
+
+        return false;
     }
 
     draw(ctx) {
-        if (this.isDead) return;
+        if (this.hasHit) return;
 
-        ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#00F';
         ctx.fill();
-
-        if (this.isSpecial) {
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
     }
 }
 

@@ -4,9 +4,9 @@ class Game {
         this.ctx = canvas.getContext('2d');
         this.width = canvas.width;
         this.height = canvas.height;
+        this.achievements = new Achievements(this);
         this.menu = new GameMenu(this);
         this.shop = new Shop(this);
-        this.achievements = new Achievements(this);
         this.autoWaveEnabled = false;
         this.autoWaveDelay = 3000; // 3 seconds delay between waves
         this.reset();
@@ -31,19 +31,21 @@ class Game {
     initializeLevel(level) {
         this.reset();
         this.path = level.createPath(this.width, this.height);
-        this.waveSystem = new WaveSystem(this.path, level.waveConfig);
-        
-        // Now that wave system is initialized, set up achievements
-        this.achievements.setupEventListeners();
+        this.waveSystem = new WaveSystem(this.path, level.config);
         
         // Apply veteran bonus if unlocked
-        if (this.achievements.rewards.veteranBonus.unlocked) {
+        if (this.achievements?.rewards?.veteranBonus?.unlocked) {
             this.money += 500;
         }
         
         // Apply wave rush reward if unlocked
-        if (this.achievements.rewards.waveRush.unlocked) {
-            this.waveSystem.spawnInterval *= 0.5;
+        if (this.achievements?.rewards?.waveRush?.unlocked) {
+            this.waveSystem.config.spawnInterval *= 0.5;
+        }
+        
+        // Now that wave system is initialized, set up achievements
+        if (this.achievements?.setupEventListeners) {
+            this.achievements.setupEventListeners();
         }
         
         this.setupWaveCallbacks();
