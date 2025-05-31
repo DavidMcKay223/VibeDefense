@@ -91,42 +91,24 @@ class BaseTower {
     }
 
     draw(ctx) {
-        // Draw tower base
-        ctx.fillStyle = this.color;
-        ctx.fillRect(
-            this.x - this.size / 2,
-            this.y - this.size / 2,
-            this.size,
-            this.size
-        );
+        // Draw tower base (common for all towers)
+        ctx.save();
+        
+        // Draw base platform
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y + this.size/3, this.size/2, this.size/6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#555555';
+        ctx.fill();
 
-        // Draw level indicator
-        ctx.fillStyle = '#FFD700';
-        for (let i = 0; i < this.level; i++) {
-            ctx.beginPath();
-            ctx.arc(
-                this.x - this.size / 4 + (i * this.size / 4),
-                this.y + this.size / 2 + 5,
-                3,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-        }
+        // Draw tower body
+        this.drawTowerBody(ctx);
 
-        // Draw tower symbol
-        this.drawSymbol(ctx);
+        // Draw level gems
+        this.drawLevelGems(ctx);
 
-        // Draw range circle
+        // Draw range circle when selected or placing
         if (Tower.isPlacing || this === Tower.selectedTower) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(74, 144, 226, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
-            ctx.fill();
+            this.drawRangeCircle(ctx);
         }
 
         // Draw projectiles
@@ -134,16 +116,54 @@ class BaseTower {
 
         // Draw targeting line
         if (this.target && !this.target.isDead) {
+            this.drawTargetingLine(ctx);
+        }
+
+        ctx.restore();
+    }
+
+    drawRangeCircle(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(74, 144, 226, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
+        ctx.fill();
+    }
+
+    drawTargetingLine(ctx) {
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.target.x, this.target.y);
+        ctx.strokeStyle = 'rgba(74, 144, 226, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    drawLevelGems(ctx) {
+        const gemColors = ['#FFD700', '#FF5733', '#9B59B6'];
+        const gemSize = 6;
+        const spacing = gemSize * 2;
+        const startX = this.x - ((this.level - 1) * spacing) / 2;
+        
+        for (let i = 0; i < this.level; i++) {
             ctx.beginPath();
-            ctx.moveTo(this.x, this.y);
-            ctx.lineTo(this.target.x, this.target.y);
-            ctx.strokeStyle = 'rgba(74, 144, 226, 0.5)';
+            ctx.moveTo(startX + i * spacing, this.y + this.size/2 + gemSize);
+            ctx.lineTo(startX + i * spacing - gemSize/2, this.y + this.size/2 + gemSize * 2);
+            ctx.lineTo(startX + i * spacing + gemSize/2, this.y + this.size/2 + gemSize * 2);
+            ctx.closePath();
+            
+            ctx.fillStyle = gemColors[this.level - 1];
+            ctx.fill();
+            ctx.strokeStyle = '#FFF';
             ctx.lineWidth = 1;
             ctx.stroke();
         }
     }
 
-    drawSymbol(ctx) {
+    drawTowerBody(ctx) {
         // Override in subclasses
     }
 }
@@ -165,10 +185,27 @@ class BasicTower extends BaseTower {
         return new Explosion(x, y, 30, this.damage * 0.5);
     }
 
-    drawSymbol(ctx) {
-        ctx.fillStyle = '#FFF';
+    drawTowerBody(ctx) {
+        // Draw main tower body
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+        ctx.rect(this.x - this.size/3, this.y - this.size/2, this.size * 2/3, this.size * 0.8);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = '#2980B9';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw cannon
+        ctx.beginPath();
+        ctx.rect(this.x - this.size/6, this.y - this.size/2 - this.size/4, this.size/3, this.size/2);
+        ctx.fillStyle = '#2980B9';
+        ctx.fill();
+
+        // Draw details
+        const detailColor = this.level === this.maxLevel ? '#FFD700' : '#FFF';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - this.size/4, this.size/6, 0, Math.PI * 2);
+        ctx.fillStyle = detailColor;
         ctx.fill();
     }
 }
@@ -190,14 +227,43 @@ class SniperTower extends BaseTower {
         return new PiercingShot(x, y, this.target.x - x, this.target.y - y, this.damage);
     }
 
-    drawSymbol(ctx) {
-        ctx.strokeStyle = '#FFF';
-        ctx.lineWidth = 2;
+    drawTowerBody(ctx) {
+        // Draw main tower body
         ctx.beginPath();
-        ctx.moveTo(this.x - 8, this.y);
-        ctx.lineTo(this.x + 8, this.y);
-        ctx.moveTo(this.x, this.y - 8);
-        ctx.lineTo(this.x, this.y + 8);
+        ctx.moveTo(this.x - this.size/2, this.y + this.size/3);
+        ctx.lineTo(this.x + this.size/2, this.y + this.size/3);
+        ctx.lineTo(this.x + this.size/3, this.y - this.size/2);
+        ctx.lineTo(this.x - this.size/3, this.y - this.size/2);
+        ctx.closePath();
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = '#6C3483';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw sniper barrel
+        ctx.beginPath();
+        ctx.rect(this.x - this.size/8, this.y - this.size/2 - this.size/2, this.size/4, this.size * 0.7);
+        ctx.fillStyle = '#6C3483';
+        ctx.fill();
+
+        // Draw scope
+        const scopeColor = this.level === this.maxLevel ? '#FFD700' : '#FFF';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - this.size/4, this.size/5, 0, Math.PI * 2);
+        ctx.strokeStyle = scopeColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw crosshair
+        const crossSize = this.size/8;
+        ctx.beginPath();
+        ctx.moveTo(this.x - crossSize, this.y - this.size/4);
+        ctx.lineTo(this.x + crossSize, this.y - this.size/4);
+        ctx.moveTo(this.x, this.y - this.size/4 - crossSize);
+        ctx.lineTo(this.x, this.y - this.size/4 + crossSize);
+        ctx.strokeStyle = scopeColor;
+        ctx.lineWidth = 1;
         ctx.stroke();
     }
 }
@@ -219,13 +285,47 @@ class RapidTower extends BaseTower {
         return new MultiShot(x, y, this.damage * 0.5, 3);
     }
 
-    drawSymbol(ctx) {
-        ctx.fillStyle = '#FFF';
-        for (let i = 0; i < 3; i++) {
+    drawTowerBody(ctx) {
+        // Draw rotating base
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size/3, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = '#27AE60';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw multiple barrels
+        const barrelCount = 3;
+        const rotationOffset = (Date.now() / 1000) * (this.level); // Rotate faster at higher levels
+        
+        for (let i = 0; i < barrelCount; i++) {
+            const angle = (i * 2 * Math.PI / barrelCount) + rotationOffset;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(angle);
+            
+            // Draw barrel
             ctx.beginPath();
-            ctx.arc(this.x + (i * 6 - 6), this.y, 2, 0, Math.PI * 2);
+            ctx.rect(-this.size/8, -this.size/2, this.size/4, this.size/2);
+            ctx.fillStyle = '#27AE60';
             ctx.fill();
+            
+            // Draw barrel tip
+            const tipColor = this.level === this.maxLevel ? '#FFD700' : '#FFF';
+            ctx.beginPath();
+            ctx.arc(0, -this.size/2, this.size/8, 0, Math.PI * 2);
+            ctx.fillStyle = tipColor;
+            ctx.fill();
+            
+            ctx.restore();
         }
+
+        // Draw center cap
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size/6, 0, Math.PI * 2);
+        ctx.fillStyle = this.level === this.maxLevel ? '#FFD700' : '#FFF';
+        ctx.fill();
     }
 }
 
