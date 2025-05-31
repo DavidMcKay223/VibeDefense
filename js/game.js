@@ -1,24 +1,37 @@
 class Game {
     constructor(canvas) {
+        console.log('Game constructor called');
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.width = canvas.width;
         this.height = canvas.height;
+        
+        console.log('Initializing game components...');
         this.achievements = new Achievements(this);
+        console.log('Creating game menu...');
         this.menu = new GameMenu(this);
+        console.log('Creating shop...');
         this.shop = new Shop(this);
+        
         this.autoWaveEnabled = false;
         this.autoWaveDelay = 3000; // 3 seconds delay between waves
+        
+        console.log('Resetting game state...');
         this.reset();
+        
         // Make the game instance globally accessible
+        console.log('Setting global game instance');
         window.gameInstance = this;
 
         // Load assets before starting
+        console.log('Loading game assets...');
         assetManager.loadAssets().then(() => {
             console.log('Assets loaded successfully');
         }).catch(error => {
             console.error('Failed to load assets:', error);
         });
+        
+        console.log('Game constructor complete');
     }
 
     reset() {
@@ -519,19 +532,33 @@ class Game {
 
 // Initialize game when window loads
 window.addEventListener('load', async () => {
+    console.log('Window loaded, initializing game...');
     const canvas = document.getElementById('gameCanvas');
+    console.log('Found game canvas:', canvas);
+    
     if (canvas) {
+        console.log('Canvas dimensions:', {
+            width: canvas.width,
+            height: canvas.height,
+            clientWidth: canvas.clientWidth,
+            clientHeight: canvas.clientHeight
+        });
+        
         // Load assets first
         try {
+            console.log('Loading assets...');
             await assetManager.loadAssets();
+            console.log('Assets loaded successfully');
         } catch (error) {
             console.error('Failed to load assets:', error);
             // For now, continue with the game using fallback shapes
         }
         
+        console.log('Creating new Game instance');
         const game = new Game(canvas);
         
         // Set up event listeners
+        console.log('Setting up canvas event listeners');
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -545,5 +572,9 @@ window.addEventListener('load', async () => {
             const y = e.clientY - rect.top;
             game.handleMove(x, y);
         });
+        
+        console.log('Game initialization complete');
+    } else {
+        console.error('Failed to find game canvas element!');
     }
 }); 

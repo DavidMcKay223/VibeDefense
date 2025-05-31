@@ -219,18 +219,29 @@
             border-radius: 10px;
             background: rgba(0, 0, 0, 0.2);
             overflow: hidden;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .level-preview canvas {
             width: 100%;
             height: 100%;
             object-fit: contain;
+            display: block;
         }
 
         .level-card h3 {
             font-size: 20px;
             margin: 0 0 8px 0;
             color: #fff;
+        }
+
+        .level-card p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin: 8px 0;
         }
 
         .difficulty {
