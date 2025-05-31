@@ -209,17 +209,54 @@ class BasicTower extends Tower {
             range: this.range,
             attackSpeed: this.attackSpeed
         };
+        this.rotation = 0;
     }
 
     drawTowerBody(ctx, alpha) {
-        // Blue tower with rounded top
-        ctx.fillStyle = `rgba(52, 152, 219, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - this.size/4, this.size/2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.save();
         
-        // Tower base
-        ctx.fillRect(this.x - this.size/3, this.y - this.size/4, this.size/1.5, this.size/1.5);
+        // Draw base
+        const baseImg = assetManager.getImage('basicTower_base');
+        if (baseImg) {
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(baseImg, 
+                this.x - this.size, 
+                this.y - this.size/4, 
+                this.size * 2, 
+                this.size
+            );
+        }
+
+        // Calculate rotation angle if we have a target
+        if (this.targetEnemy) {
+            this.rotation = Math.atan2(
+                this.targetEnemy.y - this.y,
+                this.targetEnemy.x - this.x
+            );
+        }
+
+        // Draw tower with rotation
+        const towerImg = assetManager.getImage('basicTower');
+        if (towerImg) {
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(towerImg, 
+                -this.size, 
+                -this.size, 
+                this.size * 2, 
+                this.size * 2
+            );
+        } else {
+            // Fallback to shape-based drawing if image not loaded
+            ctx.fillStyle = `rgba(52, 152, 219, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(-2, -this.size/2, 4, this.size/2);
+        }
+
+        ctx.restore();
     }
 
     static get cost() {
@@ -239,41 +276,67 @@ class SniperTower extends Tower {
             range: this.range,
             attackSpeed: this.attackSpeed
         };
+        this.rotation = 0; // Current rotation angle
     }
 
     drawTowerBody(ctx, alpha) {
-        // Purple sniper tower with long barrel
-        ctx.fillStyle = `rgba(155, 89, 182, ${alpha})`; // Purple color
+        ctx.save();
         
-        // Draw the main tower body (octagonal base)
-        ctx.beginPath();
-        const sides = 8;
-        const size = this.size/2;
-        for (let i = 0; i < sides; i++) {
-            const angle = (i / sides) * Math.PI * 2;
-            const x = this.x + Math.cos(angle) * size;
-            const y = this.y + Math.sin(angle) * size;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+        // Draw base
+        const baseImg = assetManager.getImage('sniperTower_base');
+        if (baseImg) {
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(baseImg, 
+                this.x - this.size, 
+                this.y - this.size/4, 
+                this.size * 2, 
+                this.size
+            );
         }
-        ctx.closePath();
-        ctx.fill();
 
-        // Draw the sniper barrel
+        // Calculate rotation angle if we have a target
         if (this.targetEnemy) {
-            const angle = Math.atan2(
+            this.rotation = Math.atan2(
                 this.targetEnemy.y - this.y,
                 this.targetEnemy.x - this.x
             );
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(angle);
-            ctx.fillRect(0, -2, this.size/1.2, 4);
-            ctx.restore();
-        } else {
-            // Default barrel position (pointing right)
-            ctx.fillRect(this.x, this.y - 2, this.size/1.2, 4);
         }
+
+        // Draw tower with rotation
+        const towerImg = assetManager.getImage('sniperTower');
+        if (towerImg) {
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(towerImg, 
+                -this.size, 
+                -this.size, 
+                this.size * 2, 
+                this.size * 2
+            );
+        } else {
+            // Fallback to shape-based drawing if image not loaded
+            ctx.fillStyle = `rgba(155, 89, 182, ${alpha})`; // Purple color
+            
+            // Draw the main tower body (octagonal base)
+            ctx.beginPath();
+            const sides = 8;
+            const size = this.size/2;
+            for (let i = 0; i < sides; i++) {
+                const angle = (i / sides) * Math.PI * 2;
+                const x = Math.cos(angle) * size;
+                const y = Math.sin(angle) * size;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw the barrel
+            ctx.fillRect(0, -2, this.size/1.2, 4);
+        }
+
+        ctx.restore();
     }
 
     specialAbility(x, y) {
@@ -302,30 +365,68 @@ class RapidTower extends Tower {
             range: this.range,
             attackSpeed: this.attackSpeed
         };
+        this.rotation = 0;
     }
 
     drawTowerBody(ctx, alpha) {
-        // Green rapid-fire tower with multiple turrets
-        ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`; // Green color
+        ctx.save();
         
-        // Draw triangular base
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y - this.size/2);
-        ctx.lineTo(this.x - this.size/2, this.y + this.size/2);
-        ctx.lineTo(this.x + this.size/2, this.y + this.size/2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Draw multiple small turret barrels
-        const barrelCount = 3;
-        for (let i = 0; i < barrelCount; i++) {
-            const angle = ((i / barrelCount) - 0.5) * Math.PI * 0.5;
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(angle);
-            ctx.fillRect(0, -1, this.size/2, 2);
-            ctx.restore();
+        // Draw base
+        const baseImg = assetManager.getImage('rapidTower_base');
+        if (baseImg) {
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(baseImg, 
+                this.x - this.size, 
+                this.y - this.size/4, 
+                this.size * 2, 
+                this.size
+            );
         }
+
+        // Calculate rotation angle if we have a target
+        if (this.targetEnemy) {
+            this.rotation = Math.atan2(
+                this.targetEnemy.y - this.y,
+                this.targetEnemy.x - this.x
+            );
+        }
+
+        // Draw tower with rotation
+        const towerImg = assetManager.getImage('rapidTower');
+        if (towerImg) {
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(towerImg, 
+                -this.size, 
+                -this.size, 
+                this.size * 2, 
+                this.size * 2
+            );
+        } else {
+            // Fallback to shape-based drawing if image not loaded
+            ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`; // Green color
+            
+            // Draw triangular base
+            ctx.beginPath();
+            ctx.moveTo(0, -this.size/2);
+            ctx.lineTo(-this.size/2, this.size/2);
+            ctx.lineTo(this.size/2, this.size/2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw multiple barrels
+            const barrelCount = 3;
+            for (let i = 0; i < barrelCount; i++) {
+                const angle = ((i / barrelCount) - 0.5) * Math.PI * 0.5;
+                ctx.save();
+                ctx.rotate(angle);
+                ctx.fillRect(0, -1, this.size/2, 2);
+                ctx.restore();
+            }
+        }
+
+        ctx.restore();
     }
 
     specialAbility(x, y) {

@@ -365,9 +365,17 @@ class Game {
 }
 
 // Initialize game when window loads
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     const canvas = document.getElementById('gameCanvas');
     if (canvas) {
+        // Load assets first
+        try {
+            await assetManager.loadAssets();
+        } catch (error) {
+            console.error('Failed to load assets:', error);
+            // For now, continue with the game using fallback shapes
+        }
+        
         const game = new Game(canvas);
         
         // Set up event listeners
