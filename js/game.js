@@ -109,15 +109,34 @@ class Game {
 
     createPath() {
         const path = new Path();
-        // Add your path points here
+        
+        // Create a more interesting path with multiple turns
+        const margin = 50;
+        
+        // Start from the left middle
         path.addPoint(0, this.height / 2);
+        
+        // First segment: Move right
         path.addPoint(this.width / 4, this.height / 2);
-        path.addPoint(this.width / 4, this.height / 4);
-        path.addPoint(this.width * 3/4, this.height / 4);
-        path.addPoint(this.width * 3/4, this.height * 3/4);
-        path.addPoint(this.width / 4, this.height * 3/4);
+        
+        // Go up
+        path.addPoint(this.width / 4, margin);
+        
+        // Go right
+        path.addPoint(this.width * 3/4, margin);
+        
+        // Go down
+        path.addPoint(this.width * 3/4, this.height - margin);
+        
+        // Go left
+        path.addPoint(this.width / 4, this.height - margin);
+        
+        // Go up to middle
         path.addPoint(this.width / 4, this.height / 2);
+        
+        // Final stretch to right
         path.addPoint(this.width, this.height / 2);
+        
         return path;
     }
 
@@ -231,6 +250,13 @@ class Game {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.width, this.height);
 
+        // Draw background
+        this.ctx.fillStyle = '#90EE90';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+
+        // Draw grid for visual reference
+        this.drawGrid();
+
         // Draw path
         this.path.draw(this.ctx);
 
@@ -247,14 +273,62 @@ class Game {
         // Draw tower being placed
         if (Tower.isPlacing && Tower.placementTower) {
             Tower.placementTower.draw(this.ctx);
+            
+            // Show placement validity
+            const rect = this.canvas.getBoundingClientRect();
+            const x = Tower.placementTower.x;
+            const y = Tower.placementTower.y;
+            
+            if (this.canPlaceTower(x, y)) {
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, Tower.placementTower.size, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            } else {
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, Tower.placementTower.size, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
         }
 
         requestAnimationFrame(this.gameLoop.bind(this));
     }
 
+    drawGrid() {
+        const gridSize = 40;
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        this.ctx.lineWidth = 1;
+
+        // Draw vertical lines
+        for (let x = 0; x < this.width; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.height);
+            this.ctx.stroke();
+        }
+
+        // Draw horizontal lines
+        for (let y = 0; y < this.height; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.width, y);
+            this.ctx.stroke();
+        }
+    }
+
     start() {
         this.lastFrameTime = performance.now();
         requestAnimationFrame(this.gameLoop.bind(this));
+
+        // Start first wave after a short delay
+        setTimeout(() => {
+            if (!this.isPaused) {
+                this.waveSystem.generateWave();
+            }
+        }, 2000);
     }
 }
 
