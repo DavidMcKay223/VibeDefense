@@ -9,7 +9,6 @@ class BaseTower {
         this.lastShot = 0;
         this.target = null;
         this.projectiles = [];
-        this.cost = 100;
     }
 
     update(deltaTime, enemies) {
@@ -107,6 +106,8 @@ class BaseTower {
 }
 
 class BasicTower extends BaseTower {
+    static cost = 100;
+    
     constructor(x, y) {
         super(x, y);
         this.color = '#4A90E2';
@@ -114,7 +115,6 @@ class BasicTower extends BaseTower {
         this.damage = 10;
         this.fireRate = 1000;
         this.range = 100;
-        this.cost = 100;
     }
 
     drawSymbol(ctx) {
@@ -127,6 +127,8 @@ class BasicTower extends BaseTower {
 }
 
 class SniperTower extends BaseTower {
+    static cost = 200;
+    
     constructor(x, y) {
         super(x, y);
         this.color = '#800080';
@@ -134,7 +136,6 @@ class SniperTower extends BaseTower {
         this.damage = 50;
         this.fireRate = 2000;
         this.range = 200;
-        this.cost = 200;
     }
 
     drawSymbol(ctx) {
@@ -151,6 +152,8 @@ class SniperTower extends BaseTower {
 }
 
 class RapidTower extends BaseTower {
+    static cost = 150;
+    
     constructor(x, y) {
         super(x, y);
         this.color = '#32CD32';
@@ -158,7 +161,6 @@ class RapidTower extends BaseTower {
         this.damage = 5;
         this.fireRate = 300;
         this.range = 80;
-        this.cost = 150;
     }
 
     drawSymbol(ctx) {

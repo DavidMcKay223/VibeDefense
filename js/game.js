@@ -44,21 +44,22 @@ class Game {
         // Create buttons for each tower type
         Object.entries(Tower.types).forEach(([name, TowerClass]) => {
             const button = document.createElement('button');
-            button.textContent = `${name} Tower ($${TowerClass.prototype.cost})`;
+            button.textContent = `${name} Tower ($${TowerClass.cost})`;
             button.style.padding = '10px';
             button.style.cursor = 'pointer';
             
             button.addEventListener('click', () => {
-                if (this.money >= TowerClass.prototype.cost) {
+                if (this.money >= TowerClass.cost) {
                     Tower.isPlacing = !Tower.isPlacing;
                     Tower.selectedType = TowerClass;
                     Tower.placementTower = Tower.isPlacing ? new TowerClass(0, 0) : null;
                     
                     // Update all buttons
                     buttonContainer.querySelectorAll('button').forEach(btn => {
+                        const btnType = btn.getAttribute('data-type');
                         btn.textContent = btn === button && Tower.isPlacing
                             ? 'Cancel'
-                            : `${btn.getAttribute('data-type')} Tower ($${Tower.types[btn.getAttribute('data-type')].prototype.cost})`;
+                            : `${btnType} Tower ($${Tower.types[btnType].cost})`;
                     });
                 }
             });
@@ -142,9 +143,9 @@ class Game {
         // Check if the placement is valid (not too close to path)
         if (!this.path.isPointNearPath(x, y)) {
             const TowerClass = Tower.selectedType;
-            if (this.money >= TowerClass.prototype.cost) {
+            if (this.money >= TowerClass.cost) {
                 this.towers.push(new TowerClass(x, y));
-                this.money -= TowerClass.prototype.cost;
+                this.money -= TowerClass.cost;
                 this.updateStats();
             }
         }
@@ -156,7 +157,7 @@ class Game {
         // Update all buttons
         document.querySelectorAll('button[data-type]').forEach(button => {
             const type = button.getAttribute('data-type');
-            button.textContent = `${type} Tower ($${Tower.types[type].prototype.cost})`;
+            button.textContent = `${type} Tower ($${Tower.types[type].cost})`;
         });
     }
 
