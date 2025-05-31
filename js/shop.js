@@ -46,6 +46,28 @@ class Shop {
                 effect: (tower) => {
                     tower.fireRate *= 0.85;
                 }
+            },
+            criticalHit: {
+                name: "Critical Strike",
+                description: "Towers have a chance to deal double damage",
+                cost: 300,
+                level: 0,
+                maxLevel: 3,
+                effect: (tower) => {
+                    if (!tower.critChance) tower.critChance = 0;
+                    tower.critChance += 0.1; // 10% chance per level
+                }
+            },
+            chainReaction: {
+                name: "Chain Reaction",
+                description: "Projectiles have a chance to split and hit additional enemies",
+                cost: 250,
+                level: 0,
+                maxLevel: 3,
+                effect: (tower) => {
+                    if (!tower.chainChance) tower.chainChance = 0;
+                    tower.chainChance += 0.15; // 15% chance per level
+                }
             }
         };
     }

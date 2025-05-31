@@ -378,26 +378,43 @@ class Game {
             const upgradeButton = document.getElementById('upgradeButton');
             const costSpan = upgradeUI.querySelector('.upgrade-cost span');
             
-            // Position the upgrade UI above the tower
+            // Position the upgrade UI above the tower using screen coordinates
             const canvasRect = this.canvas.getBoundingClientRect();
-            const towerScreenX = canvasRect.left + tower.x;
-            const towerScreenY = canvasRect.top + tower.y;
+            const scale = {
+                x: this.canvas.width / canvasRect.width,
+                y: this.canvas.height / canvasRect.height
+            };
+            
+            // Convert tower coordinates to screen coordinates
+            const towerScreenX = canvasRect.left + (tower.x / scale.x);
+            const towerScreenY = canvasRect.top + (tower.y / scale.y);
+            
+            console.log('Positioning upgrade UI:', {
+                canvasRect,
+                scale,
+                towerX: tower.x,
+                towerY: tower.y,
+                screenX: towerScreenX,
+                screenY: towerScreenY
+            });
             
             upgradeUI.style.display = 'block';
-            upgradeUI.style.left = `${tower.x}px`;
-            upgradeUI.style.top = `${tower.y - 80}px`;
+            upgradeUI.style.left = `${towerScreenX}px`;
+            upgradeUI.style.top = `${towerScreenY}px`; // The transform CSS will move it above the tower
             
             // Update cost display
-            costSpan.textContent = upgradeCost === Infinity ? 'MAX' : upgradeCost;
+            if (costSpan) {
+                costSpan.textContent = upgradeCost === Infinity ? 'MAX' : upgradeCost;
+            }
             
             // Update button state
             if (upgradeButton) {
                 upgradeButton.disabled = this.money < upgradeCost || upgradeCost === Infinity;
-                upgradeButton.textContent = upgradeCost === Infinity ? 'Max Level' : 'Upgrade';
+                upgradeButton.textContent = upgradeCost === Infinity ? 'Max Level' : `Upgrade (${upgradeCost})`;
                 
                 // Remove old event listener if exists
-                upgradeButton.replaceWith(upgradeButton.cloneNode(true));
-                const newUpgradeButton = document.getElementById('upgradeButton');
+                const newUpgradeButton = upgradeButton.cloneNode(true);
+                upgradeButton.parentNode.replaceChild(newUpgradeButton, upgradeButton);
                 
                 // Add new event listener
                 newUpgradeButton.onclick = () => {
@@ -405,6 +422,12 @@ class Game {
                         this.money -= upgradeCost;
                         this.updateUI();
                         this.showTowerUpgradeUI(tower); // Refresh upgrade UI
+                        
+                        // Update achievement stats
+                        if (this.achievements?.stats) {
+                            this.achievements.stats.towersUpgraded++;
+                            this.achievements.checkRewards();
+                        }
                     }
                 };
             }

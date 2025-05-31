@@ -27,6 +27,7 @@ class Tower {
             range: this.range,
             fireRate: this.fireRate
         };
+        this.game = window.gameInstance; // Store reference to game instance
     }
 
     update(deltaTime, enemies) {
@@ -73,8 +74,33 @@ class Tower {
             damage *= 2;
         }
 
+        // Apply critical hit if we have the power-up
+        if (this.critChance && Math.random() < this.critChance) {
+            damage *= 2;
+            console.log('Critical hit! Damage:', damage);
+        }
+
+        // Create main projectile
         const projectile = new Projectile(this.x, this.y, this.targetEnemy, damage);
         this.projectiles.push(projectile);
+
+        // Chain reaction power-up: chance to create additional projectiles
+        if (this.chainChance && Math.random() < this.chainChance) {
+            // Find additional targets within range
+            const nearbyEnemies = this.game.waveSystem.activeEnemies
+                .filter(enemy => 
+                    enemy !== this.targetEnemy && 
+                    enemy.isAlive && 
+                    this.isInRange(enemy)
+                )
+                .slice(0, 2); // Maximum 2 additional targets
+
+            nearbyEnemies.forEach(enemy => {
+                const chainProjectile = new Projectile(this.x, this.y, enemy, damage * 0.75); // Chain projectiles deal 75% damage
+                this.projectiles.push(chainProjectile);
+                console.log('Chain reaction triggered!');
+            });
+        }
     }
 
     draw(ctx, alpha = 1) {
@@ -148,6 +174,14 @@ class Tower {
     }
 
     upgrade() {
+        console.log('Attempting to upgrade tower:', {
+            currentLevel: this.level,
+            maxLevel: this.maxLevel,
+            currentDamage: this.damage,
+            currentRange: this.range,
+            currentFireRate: this.fireRate
+        });
+
         if (this.level < this.maxLevel) {
             this.level++;
             
@@ -156,14 +190,28 @@ class Tower {
             this.range = this.baseStats.range * (1 + (this.level - 1) * 0.2);  // +20% per level
             this.fireRate = this.baseStats.fireRate * (1 - (this.level - 1) * 0.15); // -15% per level
             
+            console.log('Tower upgraded:', {
+                newLevel: this.level,
+                newDamage: this.damage,
+                newRange: this.range,
+                newFireRate: this.fireRate
+            });
+            
             return true;
         }
+        console.log('Tower already at max level');
         return false;
     }
 
     getUpgradeCost() {
-        if (this.level >= this.maxLevel) return Infinity;
-        return Math.floor(this.constructor.cost * (1 + this.level * 0.5));
+        const cost = this.level >= this.maxLevel ? Infinity : Math.floor(this.constructor.cost * (1 + this.level * 0.5));
+        console.log('Calculating upgrade cost:', {
+            currentLevel: this.level,
+            maxLevel: this.maxLevel,
+            baseCost: this.constructor.cost,
+            upgradeCost: cost
+        });
+        return cost;
     }
 }
 
