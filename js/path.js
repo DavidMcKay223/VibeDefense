@@ -2,12 +2,13 @@ class Path {
     constructor(canvas) {
         this.canvas = canvas;
         this.points = [];
+        this.pathWidth = 30; // Width of the path
         this.generatePath();
     }
 
     generatePath() {
         const numPoints = 4; // Number of points in the path
-        const margin = 50; // Margin from canvas edges
+        const margin = 40; // Reduced margin from edges
         
         // Start point (always on the left side)
         const startY = Math.random() * (this.canvas.height - 2 * margin) + margin;
@@ -35,8 +36,8 @@ class Path {
         }
         
         // Style the path
-        ctx.strokeStyle = '#8B4513'; // Brown color for path
-        ctx.lineWidth = 30;
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = this.pathWidth;
         ctx.stroke();
         
         // Draw points for visual reference
@@ -48,15 +49,21 @@ class Path {
         });
     }
 
-    // Check if a point is too close to the path
     isPointNearPath(x, y) {
-        const threshold = 40; // Minimum distance from path
+        const threshold = this.pathWidth + 10; // Slightly larger than path width for better placement
         
+        // Check if point is too close to canvas edges
+        const edgeMargin = 20;
+        if (x < edgeMargin || x > this.canvas.width - edgeMargin ||
+            y < edgeMargin || y > this.canvas.height - edgeMargin) {
+            return true;
+        }
+
+        // Check distance to each path segment
         for (let i = 0; i < this.points.length - 1; i++) {
             const p1 = this.points[i];
             const p2 = this.points[i + 1];
             
-            // Calculate distance from point to line segment
             const distance = this.distanceToLineSegment(x, y, p1.x, p1.y, p2.x, p2.y);
             if (distance < threshold) {
                 return true;
@@ -65,7 +72,6 @@ class Path {
         return false;
     }
 
-    // Helper function to calculate distance from point to line segment
     distanceToLineSegment(x, y, x1, y1, x2, y2) {
         const A = x - x1;
         const B = y - y1;

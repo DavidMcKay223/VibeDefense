@@ -112,9 +112,9 @@ class BasicTower extends BaseTower {
         super(x, y);
         this.color = '#4A90E2';
         this.projectileColor = '#FFA500';
-        this.damage = 10;
-        this.fireRate = 1000;
-        this.range = 100;
+        this.damage = 15;
+        this.fireRate = 800;
+        this.range = 120;
     }
 
     drawSymbol(ctx) {
@@ -133,9 +133,9 @@ class SniperTower extends BaseTower {
         super(x, y);
         this.color = '#800080';
         this.projectileColor = '#FF00FF';
-        this.damage = 50;
-        this.fireRate = 2000;
-        this.range = 200;
+        this.damage = 40;
+        this.fireRate = 1500;
+        this.range = 250;
     }
 
     drawSymbol(ctx) {
@@ -158,9 +158,9 @@ class RapidTower extends BaseTower {
         super(x, y);
         this.color = '#32CD32';
         this.projectileColor = '#90EE90';
-        this.damage = 5;
-        this.fireRate = 300;
-        this.range = 80;
+        this.damage = 8;
+        this.fireRate = 250;
+        this.range = 100;
     }
 
     drawSymbol(ctx) {

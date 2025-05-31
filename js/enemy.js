@@ -4,10 +4,10 @@ class Enemy {
         this.currentPoint = 0;
         this.x = path.points[0].x;
         this.y = path.points[0].y;
-        this.speed = 1; // pixels per frame
+        this.speed = 1.5; // Increased base speed
         this.size = 20;
-        this.health = 100;
-        this.maxHealth = 100;
+        this.health = 50; // Reduced from 100
+        this.maxHealth = 50; // Reduced from 100
         this.isDead = false;
         this.reachedEnd = false;
         
