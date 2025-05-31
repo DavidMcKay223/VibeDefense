@@ -1,11 +1,47 @@
-// Static properties for tower management
-const TowerManager = {
-    isPlacing: false,
-    selectedTower: null,
-    placementTower: null,
-    selectedType: null,
-    types: {}
-};
+// Base classes first
+class Projectile {
+    constructor(x, y, target, damage, speed = 5) {
+        this.x = x;
+        this.y = y;
+        this.target = target;
+        this.damage = damage;
+        this.speed = speed;
+        this.radius = 4;
+        this.hasHit = false;
+    }
+
+    update(deltaTime) {
+        if (this.hasHit || !this.target || !this.target.isAlive) {
+            return true;
+        }
+
+        const dx = this.target.x - this.x;
+        const dy = this.target.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < this.speed) {
+            if (typeof this.target.takeDamage === 'function') {
+                this.target.takeDamage(this.damage);
+            }
+            this.hasHit = true;
+            return true;
+        }
+
+        this.x += (dx / distance) * this.speed;
+        this.y += (dy / distance) * this.speed;
+
+        return false;
+    }
+
+    draw(ctx) {
+        if (this.hasHit) return;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#00F';
+        ctx.fill();
+    }
+}
 
 class Tower {
     constructor(x, y) {
@@ -14,20 +50,20 @@ class Tower {
         this.size = 30;
         this.range = 100;
         this.damage = 10;
-        this.fireRate = 1000; // milliseconds between shots
+        this.fireRate = 1000;
         this.lastFireTime = 0;
         this.targetEnemy = null;
         this.projectiles = [];
         this.level = 1;
         this.maxLevel = 3;
         this.shotCount = 0;
-        this.specialShotInterval = 5; // Every 5th shot is special when maxed
+        this.specialShotInterval = 5;
         this.baseStats = {
             damage: this.damage,
             range: this.range,
             fireRate: this.fireRate
         };
-        this.game = window.gameInstance; // Store reference to game instance
+        this.game = window.gameInstance;
     }
 
     update(deltaTime, enemies) {
@@ -215,6 +251,17 @@ class Tower {
     }
 }
 
+// Initialize TowerManager first
+const TowerManager = {
+    isPlacing: false,
+    selectedTower: null,
+    placementTower: null,
+    selectedType: null,
+    types: {},
+    costs: {}
+};
+
+// Define tower classes
 class BasicTower extends Tower {
     constructor(x, y) {
         super(x, y);
@@ -443,33 +490,151 @@ class RapidTower extends Tower {
     }
 }
 
-// Register tower types
-TowerManager.types = {
-    'Basic': BasicTower,
-    'Sniper': SniperTower,
-    'Rapid': RapidTower
-};
+class ChainLightningTower extends Tower {
+    constructor(x, y) {
+        super(x, y);
+        this.damage = 30;
+        this.range = 150;
+        this.fireRate = 1500;
+        this.projectileColor = '#F1C40F'; // Yellow/gold for lightning
+        this.chainCount = 3; // Number of chain bounces
+        this.chainRange = 100; // Range for chain bounces
+        this.damageMultiplier = 1.2; // Each bounce does 20% more damage
+        this.baseStats = {
+            damage: this.damage,
+            range: this.range,
+            fireRate: this.fireRate,
+            chainCount: this.chainCount,
+            chainRange: this.chainRange
+        };
+        this.rotation = 0;
+    }
 
-TowerManager.selectedType = BasicTower;
+    drawTowerBody(ctx, alpha) {
+        ctx.save();
+        
+        // Draw base
+        const baseImg = assetManager.getImage('chainTower_base');
+        if (baseImg) {
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(baseImg, 
+                this.x - this.size, 
+                this.y - this.size/4, 
+                this.size * 2, 
+                this.size
+            );
+        }
 
-// Export both the Tower class and TowerManager
-window.Tower = Tower;
-window.TowerManager = TowerManager;
+        // Calculate rotation angle if we have a target
+        if (this.targetEnemy) {
+            this.rotation = Math.atan2(
+                this.targetEnemy.y - this.y,
+                this.targetEnemy.x - this.x
+            );
+        }
 
-class Projectile {
-    constructor(x, y, target, damage, speed = 5) {
-        this.x = x;
-        this.y = y;
-        this.target = target;
-        this.damage = damage;
-        this.speed = speed;
-        this.radius = 4;
-        this.hasHit = false;
+        // Draw tower with rotation
+        const towerImg = assetManager.getImage('chainTower');
+        if (towerImg) {
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.globalAlpha = alpha;
+            ctx.drawImage(towerImg, 
+                -this.size/2,
+                -this.size/2,
+                this.size,
+                this.size
+            );
+        } else {
+            // Fallback shape drawing
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(-this.size/2, -this.size/2);
+            ctx.lineTo(this.size/2, 0);
+            ctx.lineTo(-this.size/2, this.size/2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw lightning effect
+            ctx.strokeStyle = `rgba(241, 196, 15, ${alpha * 0.7})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = -this.size/4; i <= this.size/4; i += 4) {
+                ctx.moveTo(-this.size/4, i);
+                ctx.lineTo(this.size/4, i);
+            }
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    fire() {
+        this.shotCount++;
+        let damage = this.damage;
+
+        // Special shot for max level towers
+        if (this.level === this.maxLevel && this.shotCount % this.specialShotInterval === 0) {
+            damage *= 2;
+            this.chainCount += 2; // Extra bounces for special shots
+        }
+
+        // Create chain lightning projectile
+        const projectile = new ChainLightningProjectile(
+            this.x, 
+            this.y, 
+            this.targetEnemy,
+            damage,
+            this.chainCount,
+            this.chainRange,
+            this.damageMultiplier
+        );
+        this.projectiles.push(projectile);
+
+        // Chain reaction power-up effect
+        if (this.chainChance && Math.random() < this.chainChance) {
+            this.chainCount++; // Add an extra bounce
+            console.log('Chain reaction triggered - Extra bounce added!');
+        }
+    }
+
+    upgrade() {
+        if (this.level < this.maxLevel) {
+            this.level++;
+            
+            // Increase stats with each level
+            this.damage = this.baseStats.damage * (1 + (this.level - 1) * 0.5); // +50% per level
+            this.range = this.baseStats.range * (1 + (this.level - 1) * 0.2);  // +20% per level
+            this.fireRate = this.baseStats.fireRate * (1 - (this.level - 1) * 0.15); // -15% per level
+            this.chainCount = this.baseStats.chainCount + this.level - 1; // +1 chain per level
+            this.chainRange = this.baseStats.chainRange * (1 + (this.level - 1) * 0.1); // +10% chain range per level
+            
+            return true;
+        }
+        return false;
+    }
+
+    static get cost() {
+        return 350;
+    }
+}
+
+class ChainLightningProjectile extends Projectile {
+    constructor(x, y, target, damage, chainCount, chainRange, damageMultiplier) {
+        super(x, y, target, damage);
+        this.chainCount = chainCount;
+        this.chainRange = chainRange;
+        this.damageMultiplier = damageMultiplier;
+        this.hitEnemies = new Set();
+        this.lightningSegments = [];
+        this.speed = 8; // Faster than normal projectiles
     }
 
     update(deltaTime) {
         if (this.hasHit || !this.target || !this.target.isAlive) {
-            return true; // Return true to indicate this projectile should be removed
+            return true;
         }
 
         // Calculate direction to target
@@ -481,6 +646,46 @@ class Projectile {
             // Hit the target
             if (typeof this.target.takeDamage === 'function') {
                 this.target.takeDamage(this.damage);
+                this.hitEnemies.add(this.target);
+
+                // Chain to nearby enemies
+                if (this.chainCount > 0) {
+                    const nearbyEnemies = window.gameInstance.waveSystem.activeEnemies
+                        .filter(enemy => 
+                            enemy.isAlive && 
+                            !this.hitEnemies.has(enemy) &&
+                            this.getDistanceTo(enemy) <= this.chainRange
+                        );
+
+                    if (nearbyEnemies.length > 0) {
+                        // Find the closest enemy
+                        const nextTarget = nearbyEnemies.reduce((closest, current) => {
+                            const closestDist = this.getDistanceTo(closest);
+                            const currentDist = this.getDistanceTo(current);
+                            return currentDist < closestDist ? current : closest;
+                        });
+
+                        // Add lightning segment for visual effect
+                        this.lightningSegments.push({
+                            start: { x: this.x, y: this.y },
+                            end: { x: nextTarget.x, y: nextTarget.y },
+                            alpha: 1
+                        });
+
+                        // Create new projectile for the chain
+                        const chainProjectile = new ChainLightningProjectile(
+                            this.x,
+                            this.y,
+                            nextTarget,
+                            this.damage * this.damageMultiplier,
+                            this.chainCount - 1,
+                            this.chainRange,
+                            this.damageMultiplier
+                        );
+                        chainProjectile.hitEnemies = new Set(this.hitEnemies);
+                        window.gameInstance.towers[0].projectiles.push(chainProjectile);
+                    }
+                }
             }
             this.hasHit = true;
             return true;
@@ -493,15 +698,70 @@ class Projectile {
         return false;
     }
 
+    getDistanceTo(enemy) {
+        const dx = enemy.x - this.x;
+        const dy = enemy.y - this.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
     draw(ctx) {
         if (this.hasHit) return;
 
+        // Draw lightning projectile
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#00F';
+        ctx.fillStyle = '#F1C40F';
         ctx.fill();
+
+        // Draw lightning effect
+        ctx.strokeStyle = '#F1C40F';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.x - 5, this.y);
+        ctx.lineTo(this.x + 5, this.y);
+        ctx.moveTo(this.x, this.y - 5);
+        ctx.lineTo(this.x, this.y + 5);
+        ctx.stroke();
+
+        // Draw chain segments
+        this.lightningSegments.forEach(segment => {
+            ctx.strokeStyle = `rgba(241, 196, 15, ${segment.alpha})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(segment.start.x, segment.start.y);
+            ctx.lineTo(segment.end.x, segment.end.y);
+            ctx.stroke();
+
+            // Fade out the segment
+            segment.alpha *= 0.95;
+        });
+
+        // Remove faded segments
+        this.lightningSegments = this.lightningSegments.filter(segment => segment.alpha > 0.1);
     }
 }
+
+// Register tower types and costs AFTER all classes are defined
+TowerManager.types = {
+    'Basic': BasicTower,
+    'Sniper': SniperTower,
+    'Rapid': RapidTower,
+    'Chain': ChainLightningTower
+};
+
+TowerManager.costs = {
+    'Basic': 100,
+    'Sniper': 250,
+    'Rapid': 150,
+    'Chain': 350
+};
+
+TowerManager.selectedType = BasicTower;
+
+// Export to window
+window.Tower = Tower;
+window.TowerManager = TowerManager;
+window.Projectile = Projectile;
 
 class Explosion {
     constructor(x, y, radius, damage) {

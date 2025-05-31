@@ -162,7 +162,8 @@ class Game {
             button.addEventListener('click', () => {
                 const type = button.getAttribute('data-type');
                 const TowerClass = TowerManager.types[type];
-                if (this.money >= TowerClass.cost) {
+                const cost = TowerManager.costs[type];
+                if (this.money >= cost) {
                     TowerManager.isPlacing = true;
                     TowerManager.selectedType = TowerClass;
                     TowerManager.placementTower = new TowerClass(0, 0);
@@ -173,7 +174,7 @@ class Game {
         // Update tower costs in UI
         towerButtons.forEach(button => {
             const type = button.getAttribute('data-type');
-            const cost = TowerManager.types[type].cost;
+            const cost = TowerManager.costs[type];
             const costSpan = button.querySelector('.tower-cost');
             if (costSpan) {
                 costSpan.textContent = cost;
@@ -319,11 +320,14 @@ class Game {
         if (TowerManager.isPlacing && TowerManager.placementTower) {
             if (this.canPlaceTower(x, y)) {
                 const NewTowerType = TowerManager.selectedType;
+                const cost = TowerManager.costs[Object.keys(TowerManager.types).find(key => 
+                    TowerManager.types[key] === NewTowerType
+                )];
                 const tower = new NewTowerType(x, y);
                 // Apply shop upgrades to new tower
                 this.shop.applyUpgrades(tower);
                 this.towers.push(tower);
-                this.money -= NewTowerType.cost;
+                this.money -= cost;
                 this.updateUI();
                 
                 // Reset placement state
