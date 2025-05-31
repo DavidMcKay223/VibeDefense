@@ -7,46 +7,148 @@ class Path {
     }
 
     generatePath() {
-        const numPoints = 4; // Number of points in the path
-        const margin = 40; // Reduced margin from edges
-        
-        // Start point (always on the left side)
-        const startY = Math.random() * (this.canvas.height - 2 * margin) + margin;
-        this.points.push({ x: margin, y: startY });
+        const margin = 40;
+        const segmentWidth = (this.canvas.width - margin * 2) / 3;
+        const verticalSegments = 4;
+        const segmentHeight = (this.canvas.height - margin * 2) / verticalSegments;
 
-        // Generate middle points
-        for (let i = 0; i < numPoints - 2; i++) {
-            const x = margin + ((i + 1) * (this.canvas.width - 2 * margin) / (numPoints - 1));
-            const y = Math.random() * (this.canvas.height - 2 * margin) + margin;
-            this.points.push({ x, y });
+        // Start at top-left
+        this.points.push({ 
+            x: margin, 
+            y: margin 
+        });
+
+        // Create zig-zag pattern
+        for (let i = 0; i < verticalSegments; i++) {
+            // If on even segment, go right then down
+            if (i % 2 === 0) {
+                // Go right
+                this.points.push({
+                    x: this.canvas.width - margin,
+                    y: margin + i * segmentHeight
+                });
+                // Go down
+                if (i < verticalSegments - 1) {
+                    this.points.push({
+                        x: this.canvas.width - margin,
+                        y: margin + (i + 1) * segmentHeight
+                    });
+                }
+            } else {
+                // Go left
+                this.points.push({
+                    x: margin,
+                    y: margin + i * segmentHeight
+                });
+                // Go down
+                if (i < verticalSegments - 1) {
+                    this.points.push({
+                        x: margin,
+                        y: margin + (i + 1) * segmentHeight
+                    });
+                }
+            }
         }
 
-        // End point (always on the right side)
-        const endY = Math.random() * (this.canvas.height - 2 * margin) + margin;
-        this.points.push({ x: this.canvas.width - margin, y: endY });
+        // Add some curves to make it more interesting
+        this.smoothPath();
+    }
+
+    smoothPath() {
+        const smoothedPoints = [];
+        
+        // Keep first point
+        smoothedPoints.push(this.points[0]);
+
+        // Add control points between each pair of points
+        for (let i = 0; i < this.points.length - 1; i++) {
+            const current = this.points[i];
+            const next = this.points[i + 1];
+            
+            // Add several points between each pair to create smoother path
+            const steps = 5;
+            for (let j = 1; j <= steps; j++) {
+                const t = j / (steps + 1);
+                smoothedPoints.push({
+                    x: current.x + (next.x - current.x) * t,
+                    y: current.y + (next.y - current.y) * t
+                });
+            }
+        }
+
+        // Keep last point
+        smoothedPoints.push(this.points[this.points.length - 1]);
+        
+        this.points = smoothedPoints;
     }
 
     draw(ctx) {
+        // Draw path background for better visibility
         ctx.beginPath();
         ctx.moveTo(this.points[0].x, this.points[0].y);
         
-        // Draw path
         for (let i = 1; i < this.points.length; i++) {
             ctx.lineTo(this.points[i].x, this.points[i].y);
         }
         
-        // Style the path
         ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = this.pathWidth + 4;
+        ctx.stroke();
+
+        // Draw main path
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        
+        for (let i = 1; i < this.points.length; i++) {
+            ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        
+        ctx.strokeStyle = '#A0522D';
         ctx.lineWidth = this.pathWidth;
         ctx.stroke();
+
+        // Draw direction arrows
+        this.drawDirectionArrows(ctx);
+    }
+
+    drawDirectionArrows(ctx) {
+        const arrowSpacing = 100; // Space between arrows
+        let distanceTraveled = 0;
         
-        // Draw points for visual reference
-        ctx.fillStyle = '#654321';
-        this.points.forEach(point => {
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
-            ctx.fill();
-        });
+        for (let i = 0; i < this.points.length - 1; i++) {
+            const start = this.points[i];
+            const end = this.points[i + 1];
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const segmentLength = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            while (distanceTraveled < segmentLength) {
+                const t = distanceTraveled / segmentLength;
+                const x = start.x + dx * t;
+                const y = start.y + dy * t;
+
+                // Draw arrow
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                
+                ctx.beginPath();
+                ctx.moveTo(-10, -5);
+                ctx.lineTo(0, 0);
+                ctx.lineTo(-10, 5);
+                
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                ctx.restore();
+
+                distanceTraveled += arrowSpacing;
+            }
+            
+            distanceTraveled -= segmentLength;
+        }
     }
 
     isPointNearPath(x, y) {
