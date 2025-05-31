@@ -5,9 +5,12 @@ class Game {
         this.lastTime = 0;
         this.entities = [];
         this.towers = [];
+        this.enemies = [];
         
         // Game state
         this.isRunning = true;
+        this.lastEnemySpawn = 0;
+        this.spawnInterval = 2000; // Spawn enemy every 2 seconds
         
         // Create path
         this.path = new Path(this.canvas);
@@ -43,6 +46,11 @@ class Game {
         document.body.appendChild(button);
     }
 
+    spawnEnemy() {
+        const enemy = new Enemy(this.path);
+        this.enemies.push(enemy);
+    }
+
     handleMouseMove(event) {
         if (Tower.isPlacing && Tower.placementTower) {
             const rect = this.canvas.getBoundingClientRect();
@@ -74,63 +82,68 @@ class Game {
     }
 
     start() {
-        // Start the game loop
         requestAnimationFrame(this.gameLoop);
     }
 
     gameLoop(timestamp) {
-        // Calculate delta time
         const deltaTime = timestamp - this.lastTime;
         this.lastTime = timestamp;
 
-        // Clear the canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Spawn enemies
+        if (timestamp - this.lastEnemySpawn >= this.spawnInterval) {
+            this.spawnEnemy();
+            this.lastEnemySpawn = timestamp;
+        }
 
-        // Update game state
         this.update(deltaTime);
-
-        // Draw everything
         this.draw();
 
-        // Continue the game loop
         if (this.isRunning) {
             requestAnimationFrame(this.gameLoop);
         }
     }
 
     update(deltaTime) {
-        // Update all entities
-        for (const entity of this.entities) {
+        // Update enemies
+        this.enemies = this.enemies.filter(enemy => !enemy.isDead);
+        this.enemies.forEach(enemy => enemy.update(deltaTime));
+
+        // Update towers
+        this.towers.forEach(tower => tower.update(deltaTime, this.enemies));
+
+        // Update other entities
+        this.entities.forEach(entity => {
             if (entity.update) {
                 entity.update(deltaTime);
             }
-        }
+        });
     }
 
     draw() {
         // Draw background
-        this.ctx.fillStyle = '#90EE90'; // Light green background
+        this.ctx.fillStyle = '#90EE90';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw path
         this.path.draw(this.ctx);
 
+        // Draw enemies
+        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+
         // Draw towers
-        for (const tower of this.towers) {
-            tower.draw(this.ctx);
-        }
+        this.towers.forEach(tower => tower.draw(this.ctx));
 
         // Draw placement tower if in placement mode
         if (Tower.isPlacing && Tower.placementTower) {
             Tower.placementTower.draw(this.ctx);
         }
 
-        // Draw entities
-        for (const entity of this.entities) {
+        // Draw other entities
+        this.entities.forEach(entity => {
             if (entity.draw) {
                 entity.draw(this.ctx);
             }
-        }
+        });
     }
 }
 
