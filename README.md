@@ -1,33 +1,101 @@
 # Vibe Defense
 
-A modern tower defense game built with JavaScript and HTML5 Canvas.
+A modern tower defense game built with JavaScript and HTML5 Canvas, featuring smooth tower mechanics and dynamic enemy interactions.
 
 ## Project Structure
 
 ```
 VibeDefense/
+├── assets/          # Game assets directory
+│   ├── towers/      # Tower PNG images
+│   ├── enemies/     # Enemy PNG images
+│   ├── projectiles/ # Projectile PNG images
+│   ├── effects/     # Visual effect PNG images
+├── icons/           # UI icons in PNG format
 ├── js/
-│   ├── game.js       # Main game logic and loop
-│   ├── enemy.js      # Enemy types and behavior
-│   ├── tower.js      # Tower types and combat
-│   ├── path.js       # Path system and visualization
-│   ├── wave.js       # Wave management system
-│   ├── levels.js     # Level definitions and difficulty
-│   └── menu.js       # Menu system and UI management
-├── index.html        # Main game container and styles
-└── README.md         # Project documentation
+│   ├── game.js      # Main game logic and loop
+│   ├── enemy.js     # Enemy types and behavior
+│   ├── tower.js     # Tower types and combat
+│   ├── path.js      # Path system and visualization
+│   └── ui.js        # UI elements and interactions
+├── index.html       # Main game container
+└── README.md        # Project documentation
 ```
 
 ## Features
 
-### Game Mechanics
-- Multiple tower types (Basic, Sniper, Rapid) with unique abilities
-- Different enemy types with varying behaviors
-- Wave-based progression system
-- Path system with direction indicators
-- Tower placement and upgrade system
+### Tower System
+- Three distinct tower types with unique mechanics:
+  - **Basic Tower**: Balanced tower with single-barrel design
+    - Moderate damage and range
+    - Consistent fire rate
+    - Blue projectiles
+  
+  - **Sniper Tower**: Long-range specialist
+    - High damage output
+    - Slower fire rate
+    - Extended range
+    - Purple projectiles
+    - Special ability: Piercing shots at max level
+  
+  - **Rapid Tower**: Multi-barrel design
+    - Lower damage per shot
+    - High fire rate
+    - Triple-barrel system
+    - Green projectiles
+    - Special ability: Multi-shot spread at max level
 
-### Levels
+### Tower Mechanics
+- Dynamic rotation system that tracks enemies
+- Projectiles originate from barrel tips
+- Tower upgrades up to level 3
+- Special abilities unlock at max level
+- Visual upgrade indicators with gem system
+- Range preview during placement and selection
+
+### Asset System
+- High-quality PNG assets for all game elements
+- Smooth sprite animations
+- Visual effects for projectiles and impacts
+- UI icons for game resources
+
+### Game Elements
+- Enemy targeting system
+- Projectile collision detection
+- Tower placement validation
+- Resource management (money, lives)
+- Wave progression system
+
+### UI Features
+- Tower selection interface
+- Resource display (money, lives, wave count)
+- Tower range indicators
+- Targeting line visualization
+- Upgrade status display
+
+## Technical Details
+
+### Tower Implementation
+- Modular tower class system
+- Inheritance-based tower types
+- Dynamic projectile management
+- Efficient rendering system
+- Collision detection optimization
+
+### Asset Management
+- Centralized asset loading system
+- Optimized PNG sprites
+- Cached image references
+- Fallback rendering for missing assets
+
+### Planned Features
+- [ ] Additional tower types
+- [ ] New enemy variations
+- [ ] Power-up system
+- [ ] Wave difficulty progression
+- [ ] Score tracking system
+
+## Levels
 1. **Beginner's Path** (Easy)
    - Simple S-shaped path
    - Reduced enemy health and spawn rate
@@ -48,20 +116,7 @@ VibeDefense/
    - Double enemy health
    - Very frequent boss waves
 
-### UI Features
-- Animated splash screen with logo
-- Level selection with difficulty indicators
-- In-game stats tracking (Money, Lives, Score, Wave)
-- Tower placement preview with range indicator
-- Wave completion messages
-- Game over screen with score
-
 ## Development Notes
-
-### Tower Types
-- **Basic Tower**: Balanced damage and range
-- **Sniper Tower**: High damage, slow fire rate, long range
-- **Rapid Tower**: Low damage, fast fire rate, medium range
 
 ### Enemy Types
 - **Basic Enemy**: Balanced stats
