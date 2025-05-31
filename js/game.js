@@ -1,313 +1,285 @@
 class Game {
-    constructor() {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.lastTime = 0;
-        this.entities = [];
-        this.towers = [];
-        this.enemies = [];
-        
-        // Game state
-        this.isRunning = true;
-        this.lastEnemySpawn = 0;
-        this.spawnInterval = 2000;
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.width = canvas.width;
+        this.height = canvas.height;
+        this.money = 200;
         this.lives = 20;
         this.score = 0;
-        this.money = 300;
-        
-        // Create path
-        this.path = new Path(this.canvas);
-        
-        // Bind methods
-        this.gameLoop = this.gameLoop.bind(this);
-        this.handleClick = this.handleClick.bind(this);
-        this.handleMouseMove = this.handleMouseMove.bind(this);
-        
-        // Add event listeners
-        this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('mousemove', this.handleMouseMove);
-        
-        // Create UI
-        this.createUI();
-        this.selectedTower = null;
-        this.specialEffects = [];
+        this.towers = [];
+        this.path = this.createPath();
+        this.waveSystem = new WaveSystem(this.path);
+        this.setupWaveCallbacks();
+        this.lastFrameTime = 0;
+        this.isPaused = false;
+        this.setupUI();
     }
 
-    createUI() {
-        // Create container for tower buttons
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.position = 'absolute';
-        buttonContainer.style.top = '20px';
-        buttonContainer.style.left = '20px';
-        buttonContainer.style.display = 'flex';
-        buttonContainer.style.gap = '10px';
-        document.body.appendChild(buttonContainer);
-
-        // Create buttons for each tower type
-        Object.entries(Tower.types).forEach(([name, TowerClass]) => {
-            const button = document.createElement('button');
-            button.textContent = `${name} Tower ($${TowerClass.cost})`;
-            button.style.padding = '10px';
-            button.style.cursor = 'pointer';
-            
-            button.addEventListener('click', () => {
-                if (this.money >= TowerClass.cost) {
-                    Tower.isPlacing = !Tower.isPlacing;
-                    Tower.selectedType = TowerClass;
-                    Tower.placementTower = Tower.isPlacing ? new TowerClass(0, 0) : null;
-                    this.selectedTower = null;
-                    
-                    // Update all buttons
-                    buttonContainer.querySelectorAll('button').forEach(btn => {
-                        const btnType = btn.getAttribute('data-type');
-                        btn.textContent = btn === button && Tower.isPlacing
-                            ? 'Cancel'
-                            : `${btnType} Tower ($${Tower.types[btnType].cost})`;
-                    });
-                }
-            });
-            
-            button.setAttribute('data-type', name);
-            buttonContainer.appendChild(button);
-        });
-
-        // Create upgrade button
-        const upgradeButton = document.createElement('button');
-        upgradeButton.textContent = 'Upgrade Tower';
-        upgradeButton.style.padding = '10px';
-        upgradeButton.style.cursor = 'pointer';
-        upgradeButton.style.display = 'none';
-        
-        upgradeButton.addEventListener('click', () => {
-            if (this.selectedTower) {
-                const upgradeCost = this.selectedTower.getUpgradeCost();
-                if (this.money >= upgradeCost) {
-                    if (this.selectedTower.upgrade()) {
-                        this.money -= upgradeCost;
-                        this.updateStats();
-                        this.updateUpgradeButton();
-                    }
-                }
-            }
-        });
-        
-        buttonContainer.appendChild(upgradeButton);
-        this.upgradeButton = upgradeButton;
-
-        // Create stats container
-        const statsContainer = document.createElement('div');
-        statsContainer.style.position = 'absolute';
-        statsContainer.style.top = '20px';
-        statsContainer.style.right = '20px';
-        statsContainer.style.padding = '10px';
-        statsContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        statsContainer.style.color = 'white';
-        statsContainer.style.borderRadius = '5px';
-        statsContainer.style.fontFamily = 'Arial, sans-serif';
-        document.body.appendChild(statsContainer);
-        this.statsContainer = statsContainer;
-
-        this.updateStats();
-    }
-
-    updateStats() {
-        this.statsContainer.innerHTML = `
-            Lives: ${this.lives} | 
-            Score: ${this.score} | 
-            Money: $${this.money}
-        `;
-    }
-
-    spawnEnemy() {
-        const enemy = new Enemy(this.path);
-        enemy.onDeath = () => {
-            if (!enemy.reachedEnd) {
-                this.score += 10;
-                this.money += 25;
-                this.updateStats();
-            }
+    setupWaveCallbacks() {
+        this.waveSystem.onEnemyDeath = (enemy) => {
+            this.money += enemy.value;
+            this.score += enemy.value;
+            this.updateUI();
         };
-        enemy.onReachEnd = () => {
+
+        this.waveSystem.onEnemyReachEnd = (enemy) => {
             this.lives--;
-            this.updateStats();
+            this.updateUI();
             if (this.lives <= 0) {
                 this.gameOver();
             }
         };
-        this.enemies.push(enemy);
-    }
 
-    gameOver() {
-        this.isRunning = false;
-        
-        // Create game over screen
-        const gameOverDiv = document.createElement('div');
-        gameOverDiv.style.position = 'absolute';
-        gameOverDiv.style.top = '50%';
-        gameOverDiv.style.left = '50%';
-        gameOverDiv.style.transform = 'translate(-50%, -50%)';
-        gameOverDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        gameOverDiv.style.color = 'white';
-        gameOverDiv.style.padding = '20px';
-        gameOverDiv.style.borderRadius = '10px';
-        gameOverDiv.style.textAlign = 'center';
-        gameOverDiv.innerHTML = `
-            <h2>Game Over!</h2>
-            <p>Final Score: ${this.score}</p>
-            <button onclick="location.reload()">Play Again</button>
-        `;
-        document.body.appendChild(gameOverDiv);
-    }
-
-    handleClick(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        if (Tower.isPlacing) {
-            // Place new tower
-            if (!this.path.isPointNearPath(x, y)) {
-                const TowerClass = Tower.selectedType;
-                if (this.money >= TowerClass.cost) {
-                    const tower = new TowerClass(x, y);
-                    this.towers.push(tower);
-                    this.money -= TowerClass.cost;
-                    this.updateStats();
-                }
-            }
+        this.waveSystem.onWaveComplete = () => {
+            // Bonus money for completing wave
+            const bonus = 50 + this.waveSystem.currentWave * 10;
+            this.money += bonus;
+            this.updateUI();
             
-            // Reset placement mode
+            // Show wave complete message
+            const message = document.getElementById('waveMessage');
+            message.textContent = `Wave ${this.waveSystem.currentWave} Complete! +${bonus} bonus gold`;
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+
+            // Start next wave after delay
+            setTimeout(() => {
+                if (!this.isPaused) {
+                    this.waveSystem.generateWave();
+                }
+            }, 5000);
+        };
+    }
+
+    setupUI() {
+        // Tower selection buttons
+        const towerButtons = document.querySelectorAll('.tower-button');
+        towerButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const type = button.getAttribute('data-type');
+                const TowerClass = Tower.types[type];
+                if (this.money >= TowerClass.cost) {
+                    Tower.isPlacing = true;
+                    Tower.selectedType = TowerClass;
+                    Tower.placementTower = new TowerClass(0, 0);
+                }
+            });
+        });
+
+        // Update tower costs in UI
+        towerButtons.forEach(button => {
+            const type = button.getAttribute('data-type');
+            const cost = Tower.types[type].cost;
+            const costSpan = button.querySelector('.tower-cost');
+            if (costSpan) {
+                costSpan.textContent = cost;
+            }
+        });
+
+        // Start wave button
+        const startWaveButton = document.getElementById('startWave');
+        if (startWaveButton) {
+            startWaveButton.addEventListener('click', () => {
+                if (!this.waveSystem.isWaveActive) {
+                    this.waveSystem.generateWave();
+                }
+            });
+        }
+
+        this.updateUI();
+    }
+
+    updateUI() {
+        document.getElementById('money').textContent = this.money;
+        document.getElementById('lives').textContent = this.lives;
+        document.getElementById('score').textContent = this.score;
+        document.getElementById('wave').textContent = this.waveSystem.currentWave;
+
+        // Update tower button states
+        const towerButtons = document.querySelectorAll('.tower-button');
+        towerButtons.forEach(button => {
+            const type = button.getAttribute('data-type');
+            const TowerClass = Tower.types[type];
+            button.disabled = this.money < TowerClass.cost;
+        });
+    }
+
+    createPath() {
+        const path = new Path();
+        // Add your path points here
+        path.addPoint(0, this.height / 2);
+        path.addPoint(this.width / 4, this.height / 2);
+        path.addPoint(this.width / 4, this.height / 4);
+        path.addPoint(this.width * 3/4, this.height / 4);
+        path.addPoint(this.width * 3/4, this.height * 3/4);
+        path.addPoint(this.width / 4, this.height * 3/4);
+        path.addPoint(this.width / 4, this.height / 2);
+        path.addPoint(this.width, this.height / 2);
+        return path;
+    }
+
+    handleClick(x, y) {
+        if (Tower.isPlacing) {
+            if (this.canPlaceTower(x, y)) {
+                const tower = new Tower.selectedType(x, y);
+                this.towers.push(tower);
+                this.money -= Tower.selectedType.cost;
+                this.updateUI();
+            }
             Tower.isPlacing = false;
             Tower.placementTower = null;
-            
-            // Update all buttons
-            document.querySelectorAll('button[data-type]').forEach(button => {
-                const type = button.getAttribute('data-type');
-                button.textContent = `${type} Tower ($${Tower.types[type].cost})`;
-            });
         } else {
-            // Select tower for upgrade
-            this.selectedTower = null;
-            for (const tower of this.towers) {
+            // Select existing tower
+            Tower.selectedTower = this.towers.find(tower => {
                 const dx = tower.x - x;
                 const dy = tower.y - y;
-                if (dx * dx + dy * dy < tower.size * tower.size) {
-                    this.selectedTower = tower;
-                    Tower.selectedTower = tower;
-                    break;
-                }
+                return Math.sqrt(dx * dx + dy * dy) < tower.size;
+            });
+
+            if (Tower.selectedTower) {
+                this.showTowerUpgradeUI(Tower.selectedTower);
+            } else {
+                this.hideTowerUpgradeUI();
             }
-            this.updateUpgradeButton();
         }
     }
 
-    handleMouseMove(event) {
+    handleMove(x, y) {
         if (Tower.isPlacing && Tower.placementTower) {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            
             Tower.placementTower.x = x;
             Tower.placementTower.y = y;
         }
     }
 
-    start() {
-        requestAnimationFrame(this.gameLoop);
-    }
-
-    gameLoop(timestamp) {
-        const deltaTime = timestamp - this.lastTime;
-        this.lastTime = timestamp;
-
-        // Spawn enemies
-        if (timestamp - this.lastEnemySpawn >= this.spawnInterval) {
-            this.spawnEnemy();
-            this.lastEnemySpawn = timestamp;
+    canPlaceTower(x, y) {
+        // Check if too close to path
+        const minDistanceToPath = 30;
+        if (this.path.isPointTooClose(x, y, minDistanceToPath)) {
+            return false;
         }
 
-        this.update(deltaTime);
-        this.draw();
-
-        if (this.isRunning) {
-            requestAnimationFrame(this.gameLoop);
-        }
-    }
-
-    update(deltaTime) {
-        // Update enemies
-        this.enemies = this.enemies.filter(enemy => !enemy.isDead);
-        this.enemies.forEach(enemy => enemy.update(deltaTime));
-
-        // Update towers and collect special effects
-        this.towers.forEach(tower => {
-            const effects = tower.update(deltaTime, this.enemies);
-            if (Array.isArray(effects)) {
-                this.specialEffects.push(...effects.filter(effect => effect !== null));
-            }
-        });
-
-        // Update special effects
-        this.specialEffects = this.specialEffects.filter(effect => !effect.isDead);
-        this.specialEffects.forEach(effect => effect.update(deltaTime));
-
-        // Update other entities
-        this.entities.forEach(entity => {
-            if (entity.update) {
-                entity.update(deltaTime);
-            }
+        // Check if too close to other towers
+        const minDistanceToTower = 40;
+        return !this.towers.some(tower => {
+            const dx = tower.x - x;
+            const dy = tower.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < minDistanceToTower;
         });
     }
 
-    draw() {
-        // Draw background
-        this.ctx.fillStyle = '#90EE90';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    showTowerUpgradeUI(tower) {
+        const upgradeUI = document.getElementById('towerUpgrade');
+        if (upgradeUI) {
+            upgradeUI.style.display = 'block';
+            const upgradeCost = tower.getUpgradeCost();
+            const upgradeButton = document.getElementById('upgradeButton');
+            if (upgradeButton) {
+                upgradeButton.disabled = this.money < upgradeCost || upgradeCost === Infinity;
+                upgradeButton.textContent = upgradeCost === Infinity ? 'Max Level' : `Upgrade (${upgradeCost})`;
+                upgradeButton.onclick = () => {
+                    if (this.money >= upgradeCost && tower.upgrade()) {
+                        this.money -= upgradeCost;
+                        this.updateUI();
+                    }
+                };
+            }
+        }
+    }
+
+    hideTowerUpgradeUI() {
+        const upgradeUI = document.getElementById('towerUpgrade');
+        if (upgradeUI) {
+            upgradeUI.style.display = 'none';
+        }
+        Tower.selectedTower = null;
+    }
+
+    gameOver() {
+        this.isPaused = true;
+        const gameOverScreen = document.getElementById('gameOver');
+        if (gameOverScreen) {
+            gameOverScreen.style.display = 'block';
+            document.getElementById('finalScore').textContent = this.score;
+        }
+    }
+
+    restart() {
+        this.money = 200;
+        this.lives = 20;
+        this.score = 0;
+        this.towers = [];
+        this.waveSystem = new WaveSystem(this.path);
+        this.setupWaveCallbacks();
+        this.isPaused = false;
+        this.updateUI();
+        
+        const gameOverScreen = document.getElementById('gameOver');
+        if (gameOverScreen) {
+            gameOverScreen.style.display = 'none';
+        }
+    }
+
+    gameLoop(currentTime) {
+        if (this.isPaused) return;
+
+        const deltaTime = currentTime - this.lastFrameTime;
+        this.lastFrameTime = currentTime;
+
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.width, this.height);
 
         // Draw path
         this.path.draw(this.ctx);
 
-        // Draw enemies
-        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+        // Update and draw towers
+        this.towers.forEach(tower => {
+            tower.update(deltaTime, this.waveSystem.activeEnemies);
+            tower.draw(this.ctx);
+        });
 
-        // Draw towers
-        this.towers.forEach(tower => tower.draw(this.ctx));
+        // Update and draw wave system
+        this.waveSystem.update(deltaTime);
+        this.waveSystem.draw(this.ctx);
 
-        // Draw special effects
-        this.specialEffects.forEach(effect => effect.draw(this.ctx));
-
-        // Draw placement tower if in placement mode
+        // Draw tower being placed
         if (Tower.isPlacing && Tower.placementTower) {
             Tower.placementTower.draw(this.ctx);
         }
 
-        // Draw other entities
-        this.entities.forEach(entity => {
-            if (entity.draw) {
-                entity.draw(this.ctx);
-            }
-        });
+        requestAnimationFrame(this.gameLoop.bind(this));
     }
 
-    updateUpgradeButton() {
-        if (this.selectedTower) {
-            const upgradeCost = this.selectedTower.getUpgradeCost();
-            this.upgradeButton.style.display = 'block';
-            if (upgradeCost === Infinity) {
-                this.upgradeButton.textContent = 'Max Level';
-                this.upgradeButton.disabled = true;
-            } else {
-                this.upgradeButton.textContent = `Upgrade ($${upgradeCost})`;
-                this.upgradeButton.disabled = this.money < upgradeCost;
-            }
-        } else {
-            this.upgradeButton.style.display = 'none';
-        }
+    start() {
+        this.lastFrameTime = performance.now();
+        requestAnimationFrame(this.gameLoop.bind(this));
     }
 }
 
-// Start the game when the window loads
+// Initialize game when window loads
 window.addEventListener('load', () => {
-    const game = new Game();
-    game.start();
+    const canvas = document.getElementById('gameCanvas');
+    if (canvas) {
+        const game = new Game(canvas);
+        
+        // Set up event listeners
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            game.handleClick(x, y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            game.handleMove(x, y);
+        });
+
+        // Start game
+        game.start();
+    }
 }); 

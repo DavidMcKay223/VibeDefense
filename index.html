@@ -1,41 +1,191 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tower Defense Game</title>
+    <title>Vibe Defense</title>
     <style>
-        canvas {
-            border: 1px solid black;
-            display: block;
-            margin: 0 auto;
-        }
         body {
+            margin: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
+            align-items: flex-start;
+            min-height: 100vh;
+            background: #2c3e50;
+            font-family: Arial, sans-serif;
         }
-        button {
-            background-color: #4A90E2;
+
+        #gameContainer {
+            position: relative;
+        }
+
+        #gameCanvas {
+            border: 2px solid #34495e;
+            background: #90EE90;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
             color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: background-color 0.3s;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
-        button:hover {
-            background-color: #357ABD;
+
+        #stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #towers {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .tower-button {
+            padding: 10px;
+            background: #3498db;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tower-button:hover {
+            background: #2980b9;
+        }
+
+        .tower-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #towerUpgrade {
+            position: absolute;
+            display: none;
+            padding: 10px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 5px;
+            color: white;
+        }
+
+        #waveMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border-radius: 5px;
+            display: none;
+            text-align: center;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            border-radius: 5px;
+            display: none;
+            text-align: center;
+        }
+
+        #startWave {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            padding: 10px 20px;
+            background: #27ae60;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #startWave:hover {
+            background: #219a52;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="ui">
+            <div id="stats">
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI5IiBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNCODg2MEIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjEwIiB5PSIxNCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCODg2MEIiPiQ8L3RleHQ+PC9zdmc+" alt="Money" width="20">
+                    <span id="money">200</span>
+                </div>
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTcuOGwtMS40NS0xLjMyQzQuMiAxMi4zNiAxIDkuMjggMSA1LjUgMSAyLjQyIDMuNDIgMCA2LjUgMGMxLjc0IDAgMy40MS44MSA0LjUgMi4wOUMxMi4wOS44MSAxMy43NiAwIDE1LjUgMCAxOC41OCAwIDIxIDIuNDIgMjEgNS41YzAgMy43OC0zLjIgNi44Ni03LjU1IDEwLjk4TDEwIDE3Ljh6IiBmaWxsPSIjRkY0NDQ0Ii8+PC9zdmc+" alt="Lives" width="20">
+                    <span id="lives">20</span>
+                </div>
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMGwyLjUgNy43aDguMWwtNi42IDQuOCAyLjUgNy43LTYuNS00LjctNi41IDQuNyAyLjUtNy43LTYuNi00LjhoOC4xeiIgZmlsbD0iI0ZGRDcwMCIvPjwvc3ZnPg==" alt="Score" width="20">
+                    <span id="score">0</span>
+                </div>
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAxMCBRIDUgNSwgMTAgMTAgVCAyMCAxMCIgc3Ryb2tlPSIjMzQ5OGRiIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAxNSBRIDUgMTAsIDEwIDE1IFQgMjAgMTUiIHN0cm9rZT0iIzM0OThkYiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Wave" width="20">
+                    <span id="wave">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="towers">
+            <button class="tower-button" data-type="Basic">
+                Basic Tower
+                <span class="tower-cost">100</span>
+            </button>
+            <button class="tower-button" data-type="Sniper">
+                Sniper Tower
+                <span class="tower-cost">200</span>
+            </button>
+            <button class="tower-button" data-type="Rapid">
+                Rapid Tower
+                <span class="tower-cost">150</span>
+            </button>
+        </div>
+
+        <div id="towerUpgrade">
+            <button id="upgradeButton">Upgrade</button>
+        </div>
+
+        <button id="startWave">Start Wave</button>
+
+        <div id="waveMessage"></div>
+
+        <div id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <button onclick="game.restart()">Play Again</button>
+        </div>
+    </div>
+
     <script src="js/path.js"></script>
     <script src="js/enemy.js"></script>
     <script src="js/tower.js"></script>
+    <script src="js/wave.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html> 
