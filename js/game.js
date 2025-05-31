@@ -169,6 +169,9 @@ class Game {
                 Tower.selectedType = null;
             }
         } else {
+            // Hide upgrade UI first
+            this.hideTowerUpgradeUI();
+            
             // Select existing tower
             Tower.selectedTower = this.towers.find(tower => {
                 const dx = tower.x - x;
@@ -178,8 +181,6 @@ class Game {
 
             if (Tower.selectedTower) {
                 this.showTowerUpgradeUI(Tower.selectedTower);
-            } else {
-                this.hideTowerUpgradeUI();
             }
         }
     }
@@ -210,16 +211,37 @@ class Game {
     showTowerUpgradeUI(tower) {
         const upgradeUI = document.getElementById('towerUpgrade');
         if (upgradeUI) {
-            upgradeUI.style.display = 'block';
             const upgradeCost = tower.getUpgradeCost();
             const upgradeButton = document.getElementById('upgradeButton');
+            const costSpan = upgradeUI.querySelector('.upgrade-cost span');
+            
+            // Position the upgrade UI above the tower
+            const canvasRect = this.canvas.getBoundingClientRect();
+            const towerScreenX = canvasRect.left + tower.x;
+            const towerScreenY = canvasRect.top + tower.y;
+            
+            upgradeUI.style.display = 'block';
+            upgradeUI.style.left = `${tower.x}px`;
+            upgradeUI.style.top = `${tower.y - 80}px`;
+            
+            // Update cost display
+            costSpan.textContent = upgradeCost === Infinity ? 'MAX' : upgradeCost;
+            
+            // Update button state
             if (upgradeButton) {
                 upgradeButton.disabled = this.money < upgradeCost || upgradeCost === Infinity;
-                upgradeButton.textContent = upgradeCost === Infinity ? 'Max Level' : `Upgrade (${upgradeCost})`;
-                upgradeButton.onclick = () => {
+                upgradeButton.textContent = upgradeCost === Infinity ? 'Max Level' : 'Upgrade';
+                
+                // Remove old event listener if exists
+                upgradeButton.replaceWith(upgradeButton.cloneNode(true));
+                const newUpgradeButton = document.getElementById('upgradeButton');
+                
+                // Add new event listener
+                newUpgradeButton.onclick = () => {
                     if (this.money >= upgradeCost && tower.upgrade()) {
                         this.money -= upgradeCost;
                         this.updateUI();
+                        this.showTowerUpgradeUI(tower); // Refresh upgrade UI
                     }
                 };
             }

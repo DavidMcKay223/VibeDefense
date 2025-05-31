@@ -22,18 +22,37 @@
 
         #gameContainer {
             position: relative;
-            width: min(800px, 95vw);
-            background: rgba(0, 0, 0, 0.2);
+            width: 1200px;
+            max-width: 95vw;
+            display: flex;
+            gap: 20px;
+        }
+
+        /* Side panels */
+        #leftPanel, #rightPanel {
+            width: 200px;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
-            padding: 20px;
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            height: fit-content;
+        }
+
+        /* Main game area */
+        #mainArea {
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            min-width: 0;
+            position: relative;
         }
 
         #gameCanvas {
             width: 100%;
-            height: auto;
+            aspect-ratio: 4/3;
             border: 2px solid #34495e;
             background: #90EE90;
             display: none;
@@ -58,21 +77,20 @@
 
         .logo {
             text-align: center;
-            margin-bottom: 40px;
-            transform: scale(0.8);
+            transform: scale(1);
         }
 
         .logo h1 {
-            font-size: clamp(32px, 5vw, 48px);
-            margin: 20px 0;
+            font-size: 64px;
+            margin: 40px 0;
             color: #fff;
-            text-shadow: 0 0 10px rgba(52, 152, 219, 0.8);
-            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+            letter-spacing: 6px;
         }
 
         .logo-tower {
-            width: 100px;
-            height: 150px;
+            width: 150px;
+            height: 225px;
             margin: 0 auto;
             position: relative;
         }
@@ -138,31 +156,30 @@
             flex-direction: column;
             align-items: center;
             background: linear-gradient(135deg, #2c3e50 0%, #2980b9 100%);
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-y: auto;
+            padding: 40px;
             border-radius: 15px;
+            overflow-y: auto;
         }
 
         #levelSelect h2 {
-            font-size: clamp(24px, 4vw, 32px);
-            margin-bottom: 20px;
+            font-size: 36px;
+            margin-bottom: 40px;
             color: #fff;
             text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
         }
 
         .level-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
             width: 100%;
-            padding: 10px;
+            max-width: 900px;
         }
 
         .level-card {
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
+            border-radius: 15px;
+            padding: 20px;
             cursor: pointer;
             transition: transform 0.3s, box-shadow 0.3s;
             aspect-ratio: 4/3;
@@ -201,51 +218,16 @@
         .difficulty.hard { background: #c0392b; }
         .difficulty.expert { background: #8e44ad; }
 
-        /* Updated UI styles */
-        #ui {
-            width: 100%;
-            padding: 10px;
-            display: none;
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        #stats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 10px;
-            justify-content: center;
-        }
-
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: clamp(14px, 2vw, 16px);
-        }
-
-        #gameControls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 15px;
-        }
-
+        /* Tower buttons panel */
         #towers {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 10px;
-            flex: 1;
         }
 
         .tower-button {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px;
+            width: 100%;
+            padding: 15px;
             background: #3498db;
             border: none;
             border-radius: 8px;
@@ -255,8 +237,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
-            font-size: clamp(12px, 1.5vw, 14px);
+            gap: 8px;
         }
 
         .tower-button:hover {
@@ -277,111 +258,141 @@
             border-radius: 10px;
         }
 
+        /* Stats panel */
+        #stats {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .stat img {
+            width: 24px;
+            height: 24px;
+        }
+
         #startWave {
-            padding: 12px 24px;
+            width: 100%;
+            padding: 15px;
             background: #27ae60;
-            min-width: 120px;
-            font-size: clamp(12px, 1.5vw, 14px);
             border: none;
             border-radius: 8px;
             color: white;
             cursor: pointer;
             transition: all 0.3s;
+            margin-top: auto;
         }
 
-        #startWave:hover {
-            background: #219a52;
-        }
-
-        #towerUpgrade {
-            position: absolute;
-            display: none;
-            padding: 15px;
-            background: rgba(0,0,0,0.8);
-            border-radius: 8px;
-            color: white;
-            z-index: 100;
-        }
-
+        /* Message overlays */
         #waveMessage, #gameOver {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            border-radius: 10px;
+            padding: 30px;
+            border-radius: 15px;
             text-align: center;
             display: none;
             z-index: 1000;
         }
 
         #gameOver h2 {
-            font-size: clamp(24px, 4vw, 32px);
-            margin-bottom: 15px;
+            font-size: 36px;
+            margin-bottom: 20px;
         }
 
-        .tower-button.selected {
-            background: #2ecc71;
-            transform: scale(0.95);
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        /* Tower upgrade */
+        #towerUpgrade {
+            position: absolute;
+            display: none;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            color: white;
+            z-index: 100;
+            min-width: 150px;
+            text-align: center;
         }
 
-        .tower-button.selected:hover {
-            transform: scale(0.95);
-            background: #2ecc71;
+        #upgradeButton {
+            width: 100%;
+            padding: 10px;
+            background: #3498db;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #upgradeButton:hover {
+            background: #2980b9;
+        }
+
+        #upgradeButton:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
         }
 
         /* Responsive adjustments */
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-
+        @media (max-width: 1200px) {
             #gameContainer {
-                padding: 10px;
+                flex-direction: column;
+                align-items: stretch;
             }
 
+            #leftPanel, #rightPanel {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+            }
+
+            #towers {
+                flex-direction: row;
+                flex: 1;
+            }
+
+            #stats {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .tower-button {
+                flex: 1;
+                min-width: 150px;
+            }
+        }
+
+        @media (max-width: 768px) {
             .level-grid {
                 grid-template-columns: 1fr;
             }
 
-            #towers {
-                flex-direction: column;
+            .logo h1 {
+                font-size: 48px;
             }
 
-            .tower-button {
-                width: 100%;
+            .logo-tower {
+                width: 120px;
+                height: 180px;
             }
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <div id="ui">
-            <div id="stats">
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI5IiBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNCODg2MEIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjEwIiB5PSIxNCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCODg2MEIiPiQ8L3RleHQ+PC9zdmc+" alt="Money" width="20">
-                    <span id="money">200</span>
-                </div>
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTcuOGwtMS40NS0xLjMyQzQuMiAxMi4zNiAxIDkuMjggMSA1LjUgMSAyLjQyIDMuNDIgMCA2LjUgMGMxLjc0IDAgMy40MS44MSA0LjUgMi4wOUMxMi4wOS44MSAxMy43NiAwIDE1LjUgMCAxOC41OCAwIDIxIDIuNDIgMjEgNS41YzAgMy43OC0zLjIgNi44Ni03LjU1IDEwLjk4TDEwIDE3Ljh6IiBmaWxsPSIjRkY0NDQ0Ii8+PC9zdmc+" alt="Lives" width="20">
-                    <span id="lives">20</span>
-                </div>
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMGwyLjUgNy43aDguMWwtNi42IDQuOCAyLjUgNy43LTYuNS00LjctNi41IDQuNyAyLjUtNy43LTYuNi00LjhoOC4xeiIgZmlsbD0iI0ZGRDcwMCIvPjwvc3ZnPg==" alt="Score" width="20">
-                    <span id="score">0</span>
-                </div>
-                <div class="stat">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAxMCBRIDUgNSwgMTAgMTAgVCAyMCAxMCIgc3Ryb2tlPSIjMzQ5OGRiIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAxNSBRIDUgMTAsIDEwIDE1IFQgMjAgMTUiIHN0cm9rZT0iIzM0OThkYiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Wave" width="20">
-                    <span id="wave">0</span>
-                </div>
-            </div>
-        </div>
-
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-
-        <div id="gameControls">
+        <div id="leftPanel">
             <div id="towers">
                 <button class="tower-button" data-type="Basic">
                     Basic Tower
@@ -396,19 +407,65 @@
                     <span class="tower-cost">150</span>
                 </button>
             </div>
+        </div>
+
+        <div id="mainArea">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <div id="splashScreen">
+                <div class="logo">
+                    <div class="logo-tower">
+                        <div class="tower-base"></div>
+                        <div class="tower-top"></div>
+                        <div class="tower-window"></div>
+                        <div class="tower-light"></div>
+                    </div>
+                    <h1>VIBE DEFENSE</h1>
+                </div>
+                <button id="startGameBtn">Start Game</button>
+            </div>
+
+            <div id="levelSelect">
+                <h2>Select Level</h2>
+                <div class="level-grid">
+                    <!-- Level cards will be generated by JavaScript -->
+                </div>
+            </div>
+
+            <div id="waveMessage"></div>
+            <div id="gameOver">
+                <h2>Game Over!</h2>
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <button onclick="game.restart()">Play Again</button>
+            </div>
+
+            <div id="towerUpgrade">
+                <h3>Tower Upgrade</h3>
+                <p class="upgrade-cost">Cost: <span>0</span></p>
+                <button id="upgradeButton">Upgrade</button>
+            </div>
+        </div>
+
+        <div id="rightPanel">
+            <div id="stats">
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI5IiBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNCODg2MEIiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjEwIiB5PSIxNCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCODg2MEIiPiQ8L3RleHQ+PC9zdmc+" alt="Money">
+                    <span id="money">200</span>
+                </div>
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMTcuOGwtMS40NS0xLjMyQzQuMiAxMi4zNiAxIDkuMjggMSA1LjUgMSAyLjQyIDMuNDIgMCA2LjUgMGMxLjc0IDAgMy40MS44MSA0LjUgMi4wOUMxMi4wOS44MSAxMy43NiAwIDE1LjUgMCAxOC41OCAwIDIxIDIuNDIgMjEgNS41YzAgMy43OC0zLjIgNi44Ni03LjU1IDEwLjk4TDEwIDE3Ljh6IiBmaWxsPSIjRkY0NDQ0Ii8+PC9zdmc+" alt="Lives">
+                    <span id="lives">20</span>
+                </div>
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMGwyLjUgNy43aDguMWwtNi42IDQuOCAyLjUgNy43LTYuNS00LjctNi41IDQuNyAyLjUtNy43LTYuNi00LjhoOC4xeiIgZmlsbD0iI0ZGRDcwMCIvPjwvc3ZnPg==" alt="Score">
+                    <span id="score">0</span>
+                </div>
+                <div class="stat">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAxMCBRIDUgNSwgMTAgMTAgVCAyMCAxMCIgc3Ryb2tlPSIjMzQ5OGRiIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAxNSBRIDUgMTAsIDEwIDE1IFQgMjAgMTUiIHN0cm9rZT0iIzM0OThkYiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+" alt="Wave">
+                    <span id="wave">0</span>
+                </div>
+            </div>
             <button id="startWave">Start Wave</button>
-        </div>
-
-        <div id="towerUpgrade">
-            <button id="upgradeButton">Upgrade</button>
-        </div>
-
-        <div id="waveMessage"></div>
-
-        <div id="gameOver">
-            <h2>Game Over!</h2>
-            <p>Final Score: <span id="finalScore">0</span></p>
-            <button onclick="game.restart()">Play Again</button>
         </div>
     </div>
 

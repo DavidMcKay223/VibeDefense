@@ -8,24 +8,18 @@ class GameMenu {
 
     setupMenus() {
         // Create splash screen
-        this.splashScreen = document.createElement('div');
-        this.splashScreen.id = 'splashScreen';
-        this.splashScreen.innerHTML = `
-            <div class="logo">
-                <div class="logo-tower">
-                    <div class="tower-base"></div>
-                    <div class="tower-top"></div>
-                    <div class="tower-window"></div>
-                    <div class="tower-light"></div>
-                </div>
-                <h1>VIBE DEFENSE</h1>
-            </div>
-            <button id="startGameBtn">Start Game</button>
-        `;
+        this.splashScreen = document.getElementById('splashScreen');
+        this.levelSelect = document.getElementById('levelSelect');
+        this.leftPanel = document.getElementById('leftPanel');
+        this.rightPanel = document.getElementById('rightPanel');
 
-        // Create level select screen
-        this.levelSelect = document.createElement('div');
-        this.levelSelect.id = 'levelSelect';
+        // Setup event listeners
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            this.showScreen('levelSelect');
+        });
+
+        // Setup level selection
+        const levelCards = this.levelSelect.querySelectorAll('.level-card');
         this.levelSelect.innerHTML = `
             <h2>Select Level</h2>
             <div class="level-grid">
@@ -41,19 +35,9 @@ class GameMenu {
             </div>
         `;
 
-        // Add screens to game container
-        const container = document.getElementById('gameContainer');
-        container.appendChild(this.splashScreen);
-        container.appendChild(this.levelSelect);
-
-        // Setup event listeners
-        document.getElementById('startGameBtn').addEventListener('click', () => {
-            this.showScreen('levelSelect');
-        });
-
         // Setup level selection
-        const levelCards = this.levelSelect.querySelectorAll('.level-card');
-        levelCards.forEach(card => {
+        const cards = this.levelSelect.querySelectorAll('.level-card');
+        cards.forEach(card => {
             const levelKey = card.getAttribute('data-level');
             const canvas = card.querySelector('canvas');
             const ctx = canvas.getContext('2d');
@@ -79,16 +63,21 @@ class GameMenu {
 
     showScreen(screenName) {
         this.currentScreen = screenName;
+        
+        // Hide/show main screens
         this.splashScreen.style.display = screenName === 'splash' ? 'flex' : 'none';
         this.levelSelect.style.display = screenName === 'levelSelect' ? 'flex' : 'none';
         document.getElementById('gameCanvas').style.display = screenName === 'game' ? 'block' : 'none';
-        document.getElementById('ui').style.display = screenName === 'game' ? 'flex' : 'none';
+        
+        // Handle side panels
+        this.leftPanel.style.display = screenName === 'game' ? 'flex' : 'none';
+        this.rightPanel.style.display = screenName === 'game' ? 'flex' : 'none';
     }
 
     startGame() {
         if (!this.selectedLevel) return;
         
-        // Hide menus
+        // Hide menus and show game
         this.showScreen('game');
         
         // Initialize game with selected level
