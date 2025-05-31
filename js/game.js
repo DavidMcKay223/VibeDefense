@@ -7,6 +7,8 @@ class Game {
         this.menu = new GameMenu(this);
         this.shop = new Shop(this);
         this.achievements = new Achievements(this);
+        this.autoWaveEnabled = false;
+        this.autoWaveDelay = 3000; // 3 seconds delay between waves
         this.reset();
         // Make the game instance globally accessible
         window.gameInstance = this;
@@ -14,7 +16,6 @@ class Game {
 
     reset() {
         this.money = 200;
-        // We'll apply veteran bonus after wave system is initialized
         this.lives = 20;
         this.score = 0;
         this.towers = [];
@@ -22,6 +23,9 @@ class Game {
         this.waveSystem = null;
         this.lastFrameTime = 0;
         this.isPaused = true;
+        
+        // Don't reset achievement stats on game reset
+        // They should persist across games
     }
 
     initializeLevel(level) {
@@ -51,9 +55,18 @@ class Game {
     }
 
     setupWaveCallbacks() {
+        if (!this.waveSystem) return;
+
         this.waveSystem.onEnemyDeath = (enemy) => {
-            this.money += enemy.value;
+            const moneyGained = enemy.value * (this.achievements.rewards.doubleIncome.unlocked ? 2 : 1);
+            this.money += moneyGained;
             this.score += enemy.value;
+            
+            // Update achievement stats
+            this.achievements.stats.enemiesKilled++;
+            this.achievements.stats.totalMoney += moneyGained;
+            this.achievements.checkRewards();
+            
             this.updateUI();
         };
 
@@ -69,22 +82,43 @@ class Game {
             // Bonus money for completing wave
             const bonus = 50 + this.waveSystem.currentWave * 10;
             this.money += bonus;
+            
+            // Update achievement stats
+            this.achievements.stats.wavesCompleted++;
+            this.achievements.stats.totalMoney += bonus;
+            this.achievements.stats.highestWave = Math.max(
+                this.achievements.stats.highestWave,
+                this.waveSystem.currentWave
+            );
+            this.achievements.checkRewards();
+            
             this.updateUI();
             
             // Show wave complete message
             const message = document.getElementById('waveMessage');
-            message.textContent = `Wave ${this.waveSystem.currentWave} Complete! +${bonus} bonus gold`;
-            message.style.display = 'block';
-            setTimeout(() => {
-                message.style.display = 'none';
-            }, 3000);
+            if (message) {
+                message.textContent = `Wave ${this.waveSystem.currentWave} Complete! +${bonus} bonus gold`;
+                message.style.display = 'block';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 3000);
+            }
 
-            // Start next wave after delay
-            setTimeout(() => {
-                if (!this.isPaused) {
-                    this.waveSystem.generateWave();
-                }
-            }, 5000);
+            // Enable start wave button
+            const startWaveButton = document.getElementById('startWave');
+            if (startWaveButton) {
+                startWaveButton.disabled = false;
+                startWaveButton.textContent = 'Start Next Wave';
+            }
+
+            // If auto wave is enabled, start next wave after delay
+            if (this.autoWaveEnabled && !this.isPaused) {
+                setTimeout(() => {
+                    if (this.autoWaveEnabled && !this.isPaused && !this.waveSystem.isWaveActive) {
+                        this.waveSystem.generateWave();
+                    }
+                }, this.autoWaveDelay);
+            }
         };
     }
 
@@ -127,9 +161,17 @@ class Game {
         // Start wave button
         const startWaveButton = document.getElementById('startWave');
         if (startWaveButton) {
-            startWaveButton.addEventListener('click', () => {
-                if (!this.waveSystem.isWaveActive) {
+            // Remove any existing event listeners
+            const newButton = startWaveButton.cloneNode(true);
+            startWaveButton.parentNode.replaceChild(newButton, startWaveButton);
+            
+            // Add new event listener
+            newButton.addEventListener('click', () => {
+                if (this.waveSystem && !this.waveSystem.isWaveActive) {
                     this.waveSystem.generateWave();
+                    // Disable button during wave
+                    newButton.disabled = true;
+                    newButton.textContent = 'Wave in Progress...';
                 }
             });
         }
@@ -150,6 +192,26 @@ class Game {
             gameControls.appendChild(achievementsButton);
         }
 
+        // Add auto wave toggle button
+        if (!document.getElementById('autoWaveButton') && gameControls) {
+            const autoWaveButton = document.createElement('button');
+            autoWaveButton.id = 'autoWaveButton';
+            autoWaveButton.className = 'game-button';
+            this.updateAutoWaveButton(autoWaveButton);
+            
+            autoWaveButton.addEventListener('click', () => {
+                this.autoWaveEnabled = !this.autoWaveEnabled;
+                this.updateAutoWaveButton(autoWaveButton);
+                
+                // If enabled and no wave is active, start a new wave
+                if (this.autoWaveEnabled && this.waveSystem && !this.waveSystem.isWaveActive) {
+                    this.waveSystem.generateWave();
+                }
+            });
+            
+            gameControls.appendChild(autoWaveButton);
+        }
+
         // Show necessary panels
         const leftPanel = document.getElementById('leftPanel');
         const rightPanel = document.getElementById('rightPanel');
@@ -160,6 +222,19 @@ class Game {
         if (gameCanvas) gameCanvas.style.display = 'block';
 
         this.updateUI();
+    }
+
+    updateAutoWaveButton(button = document.getElementById('autoWaveButton')) {
+        if (!button) return;
+        
+        button.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                <path d="M8 5v14l11-7z" fill="currentColor"/>
+                ${this.autoWaveEnabled ? '<path d="M0 0h24v24H0z" fill="none"/>' : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/>'}
+            </svg>
+            ${this.autoWaveEnabled ? 'Auto Wave: ON' : 'Auto Wave: OFF'}
+        `;
+        button.classList.toggle('active', this.autoWaveEnabled);
     }
 
     updateUI() {
@@ -176,6 +251,13 @@ class Game {
             button.disabled = this.money < TowerClass.cost;
             button.classList.toggle('selected', TowerManager.isPlacing && TowerManager.selectedType === TowerClass);
         });
+
+        // Update wave button state
+        const startWaveButton = document.getElementById('startWave');
+        if (startWaveButton && this.waveSystem) {
+            startWaveButton.disabled = this.waveSystem.isWaveActive;
+            startWaveButton.textContent = this.waveSystem.isWaveActive ? 'Wave in Progress...' : 'Start Next Wave';
+        }
     }
 
     createPath() {
@@ -317,6 +399,18 @@ class Game {
 
     gameOver() {
         this.isPaused = true;
+        this.autoWaveEnabled = false; // Disable auto wave on game over
+        const autoWaveButton = document.getElementById('autoWaveButton');
+        if (autoWaveButton) {
+            this.updateAutoWaveButton(autoWaveButton);
+        }
+        
+        // Update final achievements before game over
+        if (this.achievements) {
+            this.achievements.updateTimePlayed();
+            this.achievements.checkRewards();
+        }
+        
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('gameOver').style.display = 'flex';
     }

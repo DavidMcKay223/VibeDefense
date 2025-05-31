@@ -1,5 +1,5 @@
 class WaveSystem {
-    constructor(path) {
+    constructor(path, config = {}) {
         this.path = path;
         this.currentWave = 0;
         this.enemiesSpawned = 0;
@@ -13,6 +13,15 @@ class WaveSystem {
         this.onEnemySpawn = () => {};
         this.onEnemyDeath = () => {};
         this.onEnemyReachEnd = () => {};
+        
+        // Store wave configuration
+        this.config = {
+            initialEnemyCount: 10,
+            enemyHealthMultiplier: 1,
+            spawnRateMultiplier: 1,
+            bossFrequency: 5,
+            ...config
+        };
     }
 
     generateWave() {
@@ -21,7 +30,7 @@ class WaveSystem {
         this.enemiesSpawned = 0;
         this.enemiesDefeated = 0;
         
-        // Adjust difficulty based on wave number
+        // Get wave configuration
         const waveConfig = this.getWaveConfig();
         
         // Generate spawn queue based on wave config
@@ -39,7 +48,7 @@ class WaveSystem {
         
         this.isWaveActive = true;
         this.lastSpawnTime = Date.now();
-        this.spawnInterval = waveConfig.spawnInterval;
+        this.spawnInterval = Math.max(300, waveConfig.spawnInterval);
     }
 
     getWaveConfig() {
@@ -49,8 +58,11 @@ class WaveSystem {
             enemies: []
         };
 
-        if (this.currentWave % 5 === 0) {
-            // Boss wave every 5 waves
+        // Adjust enemy count based on initial count and wave number
+        const baseEnemyCount = Math.floor(this.config.initialEnemyCount + this.currentWave * 1.5);
+
+        if (this.currentWave % this.config.bossFrequency === 0) {
+            // Boss wave
             config.enemies.push({
                 type: 'Boss',
                 count: Math.floor(this.currentWave / 10) + 1,
@@ -58,13 +70,11 @@ class WaveSystem {
             });
             config.enemies.push({
                 type: 'Speed',
-                count: this.currentWave,
+                count: Math.floor(baseEnemyCount * 0.5),
                 delay: 500
             });
         } else {
             // Regular wave
-            const baseEnemyCount = Math.floor(10 + this.currentWave * 1.5);
-            
             // Add basic enemies
             config.enemies.push({
                 type: 'Basic',
@@ -76,7 +86,7 @@ class WaveSystem {
             if (this.currentWave > 2) {
                 config.enemies.push({
                     type: 'Speed',
-                    count: Math.floor(this.currentWave / 2),
+                    count: Math.floor(baseEnemyCount * 0.3),
                     delay: 0
                 });
             }
@@ -85,7 +95,7 @@ class WaveSystem {
             if (this.currentWave > 3) {
                 config.enemies.push({
                     type: 'Armored',
-                    count: Math.floor(this.currentWave / 3),
+                    count: Math.floor(baseEnemyCount * 0.2),
                     delay: 500
                 });
             }
@@ -94,7 +104,7 @@ class WaveSystem {
             if (this.currentWave > 4) {
                 config.enemies.push({
                     type: 'Layered',
-                    count: Math.floor(this.currentWave / 4),
+                    count: Math.floor(baseEnemyCount * 0.15),
                     delay: 1000
                 });
             }

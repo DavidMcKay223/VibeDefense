@@ -1,43 +1,92 @@
 class Achievements {
     constructor(game) {
         this.game = game;
+        
+        // Try to load saved stats from localStorage
+        const savedStats = this.loadStats();
+        
         this.stats = {
-            timePlayed: 0,
-            enemiesKilled: 0,
-            wavesCompleted: 0,
-            powerUpsUsed: 0,
-            totalMoney: 0,
-            highestWave: 0
+            timePlayed: savedStats?.timePlayed || 0,
+            enemiesKilled: savedStats?.enemiesKilled || 0,
+            wavesCompleted: savedStats?.wavesCompleted || 0,
+            powerUpsUsed: savedStats?.powerUpsUsed || 0,
+            totalMoney: savedStats?.totalMoney || 0,
+            highestWave: savedStats?.highestWave || 0
         };
+        
+        // Try to load saved rewards from localStorage
+        const savedRewards = this.loadRewards();
         
         this.rewards = {
             doubleIncome: {
                 name: "Double Income",
                 description: "Earn twice as much money from kills",
-                unlocked: false,
+                unlocked: savedRewards?.doubleIncome || false,
                 requirement: { enemiesKilled: 1000 }
             },
             waveRush: {
                 name: "Wave Rush",
                 description: "Reduce time between waves by 50%",
-                unlocked: false,
+                unlocked: savedRewards?.waveRush || false,
                 requirement: { wavesCompleted: 20 }
             },
             veteranBonus: {
                 name: "Veteran Bonus",
                 description: "Start with 500 extra money",
-                unlocked: false,
+                unlocked: savedRewards?.veteranBonus || false,
                 requirement: { timePlayed: 3600 } // 1 hour in seconds
             },
             powerUpMaster: {
                 name: "Power-Up Master",
                 description: "25% discount on all power-ups",
-                unlocked: false,
+                unlocked: savedRewards?.powerUpMaster || false,
                 requirement: { powerUpsUsed: 50 }
             }
         };
 
         this.startTime = Date.now();
+        
+        // Set up auto-save interval
+        this.autoSaveInterval = setInterval(() => this.saveProgress(), 30000); // Save every 30 seconds
+    }
+
+    loadStats() {
+        try {
+            const saved = localStorage.getItem('vibeDefense_stats');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            console.error('Failed to load stats:', e);
+            return null;
+        }
+    }
+
+    loadRewards() {
+        try {
+            const saved = localStorage.getItem('vibeDefense_rewards');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            console.error('Failed to load rewards:', e);
+            return null;
+        }
+    }
+
+    saveProgress() {
+        try {
+            // Update time played before saving
+            this.updateTimePlayed();
+            
+            // Save stats
+            localStorage.setItem('vibeDefense_stats', JSON.stringify(this.stats));
+            
+            // Save reward unlocks
+            const rewardStates = {};
+            Object.entries(this.rewards).forEach(([key, reward]) => {
+                rewardStates[key] = reward.unlocked;
+            });
+            localStorage.setItem('vibeDefense_rewards', JSON.stringify(rewardStates));
+        } catch (e) {
+            console.error('Failed to save progress:', e);
+        }
     }
 
     setupEventListeners() {
@@ -65,10 +114,14 @@ class Achievements {
     }
 
     updateTimePlayed() {
-        this.stats.timePlayed = Math.floor((Date.now() - this.startTime) / 1000);
+        const currentTime = Math.floor((Date.now() - this.startTime) / 1000);
+        this.stats.timePlayed += currentTime;
+        this.startTime = Date.now(); // Reset start time for next calculation
     }
 
     checkRewards() {
+        let rewardUnlocked = false;
+        
         for (const [id, reward] of Object.entries(this.rewards)) {
             if (!reward.unlocked) {
                 const requirement = Object.entries(reward.requirement)[0];
@@ -76,8 +129,14 @@ class Achievements {
                 if (this.stats[stat] >= value) {
                     reward.unlocked = true;
                     this.showRewardNotification(reward.name);
+                    rewardUnlocked = true;
                 }
             }
+        }
+        
+        // Save progress when a reward is unlocked
+        if (rewardUnlocked) {
+            this.saveProgress();
         }
     }
 
@@ -100,6 +159,7 @@ class Achievements {
     }
 
     showAchievementsScreen() {
+        // Update time played before showing screen
         this.updateTimePlayed();
         
         const achievementsScreen = document.createElement('div');
