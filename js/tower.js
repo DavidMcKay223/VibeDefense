@@ -93,9 +93,15 @@ class Tower {
             });
         }
 
+        // Calculate barrel end position based on rotation
+        const barrelLength = this.size/2;
+        const rotation = Math.atan2(enemy.y - this.y, enemy.x - this.x);
+        const startX = this.x + Math.cos(rotation) * barrelLength;
+        const startY = this.y + Math.sin(rotation) * barrelLength;
+
         this.projectiles.push(new Projectile(
-            this.x,
-            this.y,
+            startX,
+            startY,
             enemy,
             currentDamage,
             this.projectileColor || '#FFA500',
@@ -242,18 +248,20 @@ class BasicTower extends Tower {
             ctx.rotate(this.rotation);
             ctx.globalAlpha = alpha;
             ctx.drawImage(towerImg, 
-                -this.size, 
-                -this.size, 
-                this.size * 2, 
-                this.size * 2
+                -this.size/2, // Adjusted from -this.size
+                -this.size/2, // Adjusted from -this.size
+                this.size,    // Adjusted from this.size * 2
+                this.size     // Adjusted from this.size * 2
             );
         } else {
-            // Fallback to shape-based drawing if image not loaded
+            // Fallback shape drawing
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
             ctx.fillStyle = `rgba(52, 152, 219, ${alpha})`;
             ctx.beginPath();
             ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillRect(-2, -this.size/2, 4, this.size/2);
+            ctx.fillRect(0, -2, this.size/2, 4); // Adjusted cannon size and position
         }
 
         ctx.restore();
@@ -309,16 +317,18 @@ class SniperTower extends Tower {
             ctx.rotate(this.rotation);
             ctx.globalAlpha = alpha;
             ctx.drawImage(towerImg, 
-                -this.size, 
-                -this.size, 
-                this.size * 2, 
-                this.size * 2
+                -this.size/2, // Adjusted from -this.size
+                -this.size/2, // Adjusted from -this.size
+                this.size,    // Adjusted from this.size * 2
+                this.size     // Adjusted from this.size * 2
             );
         } else {
-            // Fallback to shape-based drawing if image not loaded
-            ctx.fillStyle = `rgba(155, 89, 182, ${alpha})`; // Purple color
+            // Fallback shape drawing
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.fillStyle = `rgba(155, 89, 182, ${alpha})`;
             
-            // Draw the main tower body (octagonal base)
+            // Draw octagonal base
             ctx.beginPath();
             const sides = 8;
             const size = this.size/2;
@@ -332,8 +342,8 @@ class SniperTower extends Tower {
             ctx.closePath();
             ctx.fill();
 
-            // Draw the barrel
-            ctx.fillRect(0, -2, this.size/1.2, 4);
+            // Draw the barrel (adjusted position and size)
+            ctx.fillRect(0, -2, this.size * 0.75, 4);
         }
 
         ctx.restore();
@@ -398,32 +408,27 @@ class RapidTower extends Tower {
             ctx.rotate(this.rotation);
             ctx.globalAlpha = alpha;
             ctx.drawImage(towerImg, 
-                -this.size, 
-                -this.size, 
-                this.size * 2, 
-                this.size * 2
+                -this.size/2, // Adjusted from -this.size
+                -this.size/2, // Adjusted from -this.size
+                this.size,    // Adjusted from this.size * 2
+                this.size     // Adjusted from this.size * 2
             );
         } else {
-            // Fallback to shape-based drawing if image not loaded
-            ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`; // Green color
+            // Fallback shape drawing
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`;
             
-            // Draw triangular base
+            // Draw circular base
             ctx.beginPath();
-            ctx.moveTo(0, -this.size/2);
-            ctx.lineTo(-this.size/2, this.size/2);
-            ctx.lineTo(this.size/2, this.size/2);
-            ctx.closePath();
+            ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw multiple barrels
-            const barrelCount = 3;
-            for (let i = 0; i < barrelCount; i++) {
-                const angle = ((i / barrelCount) - 0.5) * Math.PI * 0.5;
-                ctx.save();
-                ctx.rotate(angle);
-                ctx.fillRect(0, -1, this.size/2, 2);
-                ctx.restore();
-            }
+            // Draw triple barrels
+            const barrelSpacing = 10;
+            ctx.fillRect(-barrelSpacing, -2, this.size/2, 4);  // Left barrel
+            ctx.fillRect(0, -2, this.size/2, 4);               // Center barrel
+            ctx.fillRect(barrelSpacing, -2, this.size/2, 4);   // Right barrel
         }
 
         ctx.restore();
