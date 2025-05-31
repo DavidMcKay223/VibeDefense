@@ -7,6 +7,8 @@ class Game {
         this.reset();
         this.menu = new GameMenu(this);
         this.shop = new Shop(this);
+        // Make the game instance globally accessible
+        window.gameInstance = this;
     }
 
     reset() {
@@ -263,21 +265,17 @@ class Game {
 
     gameOver() {
         this.isPaused = true;
-        const gameOverScreen = document.getElementById('gameOver');
-        if (gameOverScreen) {
-            gameOverScreen.style.display = 'block';
-            document.getElementById('finalScore').textContent = this.score;
-        }
+        document.getElementById('finalScore').textContent = this.score;
+        document.getElementById('gameOver').style.display = 'flex';
     }
 
     restart() {
-        const gameOverScreen = document.getElementById('gameOver');
-        if (gameOverScreen) {
-            gameOverScreen.style.display = 'none';
-        }
-        // Hide shop when returning to level select
-        document.getElementById('shopPanel').style.display = 'none';
+        // Hide game over screen
+        document.getElementById('gameOver').style.display = 'none';
+        // Show level select
         this.menu.showScreen('levelSelect');
+        // Reset game state
+        this.reset();
     }
 
     gameLoop(currentTime) {
