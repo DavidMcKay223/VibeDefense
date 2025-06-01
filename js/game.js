@@ -205,9 +205,8 @@ class Game {
             achievementsButton.id = 'achievementsButton';
             achievementsButton.className = 'game-button';
             achievementsButton.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M12 8.5L9.75 13.5L14.25 13.5L12 8.5Z"/>
-                    <path d="M12 2L19 6V12C19 15.87 16.37 19.2 12.75 20.25C12.25 20.42 11.75 20.42 11.25 20.25C7.63 19.2 5 15.87 5 12V6L12 2ZM12 4.37L7 7.17V12C7 14.93 8.93 17.42 11.5 18.24C11.67 18.3 11.83 18.3 12 18.24C14.57 17.42 16.5 14.93 16.5 12V7.17L12 4.37Z"/>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" fill="currentColor"/>
                 </svg>
                 Achievements
             `;
