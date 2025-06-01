@@ -89,11 +89,49 @@ VibeDefense/
 - Fallback rendering for missing assets
 
 ### Planned Features
-- [ ] Additional tower types
-- [ ] New enemy variations
-- [ ] Power-up system
+- [x] Additional tower types
+- [x] More enemy variations
+- [x] Power-up system
+- [x] Achievement system
 - [ ] Wave difficulty progression
 - [ ] Score tracking system
+- [ ] Local high scores
+
+### Implemented Features
+
+#### Achievement System
+- Statistics tracking
+  - Time played
+  - Enemies killed
+  - Waves completed
+  - Power-ups used
+  - Total money earned
+  - Highest wave reached
+
+- Unlockable Rewards
+  - Double Income: Earn twice as much money from kills
+  - Wave Rush: 50% reduced time between waves
+  - Veteran Bonus: Start with 500 extra money
+  - Power-Up Master: 25% discount on power-ups
+
+#### Power-Up System
+- Tower power-ups with special abilities
+- Chain reaction effects
+- Critical hit bonuses
+- Special shot mechanics
+
+#### Tower Types
+- Basic Tower: Balanced single-target damage
+- Sniper Tower: High damage, long range
+- Rapid Tower: Fast firing, multi-barrel
+- Chain Lightning Tower: Area damage with chain effects
+
+#### Enemy Variations
+- Basic Enemy: Standard movement and health
+- Speed Enemy: Fast movement with trail effects
+- Armored Enemy: High defense, resistant to damage
+- Layered Enemy: Multiple health stages
+- Boss Enemy: High health with special abilities
 
 ## Levels
 1. **Beginner's Path** (Easy)
